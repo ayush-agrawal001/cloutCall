@@ -7,18 +7,20 @@
 import { createSecp256k1SigningSession } from "@category-labs/mera";
 import { pointsAbi } from "../lib/abi";
 import { POINTS_ADDRESS, publicClient } from "../lib/chain";
-import { deriveEvmPrivateKey } from "../lib/mera";
+import { deriveEvmPrivateKey, personaPath } from "../lib/mera";
+import { privateKeyToAccount } from "viem/accounts";
+import { toHex } from "viem";
 import { ScopedSession, SessionScopeError } from "../lib/session";
 
 const BASE = process.env.SMOKE_BASE_URL ?? "http://localhost:3000";
 
 async function main() {
   const prf = crypto.getRandomValues(new Uint8Array(32));
-  const pk = deriveEvmPrivateKey(prf);
-  const again = deriveEvmPrivateKey(prf);
+  const pk = deriveEvmPrivateKey(new Uint8Array(prf));
+  const again = deriveEvmPrivateKey(new Uint8Array(prf));
   if (Buffer.compare(Buffer.from(pk), Buffer.from(again)) !== 0) throw new Error("derivation not deterministic");
 
-  const s = new ScopedSession(createSecp256k1SigningSession({ privateKey: pk }), { budget: 300 });
+  const s = new ScopedSession(createSecp256k1SigningSession({ privateKey: new Uint8Array(pk) }), { budget: 300 });
   console.log("address", s.address);
 
   const drip = await fetch(`${BASE}/api/drip`, {
@@ -58,6 +60,24 @@ async function main() {
     if (!(e instanceof SessionScopeError) || e.reason !== "target") throw e;
     console.log("target scope enforced ✓");
   }
+  // Personas: same passkey PRF + same name → same, separate, unlinkable account.
+  const pathA = await personaPath("office-league");
+  if (pathA !== (await personaPath(" Office-League "))) throw new Error("persona path not stable");
+  const main = privateKeyToAccount(toHex(deriveEvmPrivateKey(prf)));
+  const personaA = privateKeyToAccount(toHex(deriveEvmPrivateKey(prf, pathA)));
+  const personaB = privateKeyToAccount(toHex(deriveEvmPrivateKey(prf, await personaPath("anon"))));
+  if (main.address !== s.address) throw new Error("main path mismatch");
+  if (new Set([main.address, personaA.address, personaB.address]).size !== 3) throw new Error("personas collide");
+  const ps = new ScopedSession(createSecp256k1SigningSession({ privateKey: deriveEvmPrivateKey(prf, pathA) }));
+  await fetch(`${BASE}/api/drip`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ address: ps.address }),
+  });
+  await ps.write({ address: POINTS_ADDRESS, abi: pointsAbi, functionName: "claimStarter", args: [] });
+  ps.end();
+  console.log(`persona ${pathA} → ${personaA.address} plays separately ✓`);
+
   s.end();
   try {
     await s.write({ address: POINTS_ADDRESS, abi: pointsAbi, functionName: "claimStarter", args: [] });

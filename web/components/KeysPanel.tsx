@@ -53,6 +53,13 @@ export function KeysPanel() {
           )}
         </div>
       </div>
+      <div className="rounded-xl bg-surface-2 p-4">
+        <p className="text-xs uppercase tracking-wider text-muted">Keys 3…n · Personas</p>
+        <p className="mt-2 text-xs text-muted">
+          One unlinkable account per persona name on branch <code>m/44&apos;/60&apos;/7&apos;/0/index</code>, where
+          index is derived from the name. Same passkey, same name → same persona on every device.
+        </p>
+      </div>
       <p className="text-xs text-muted">
         Cross-device check: sign in on another device with the same synced passkey — the address and fingerprint match,
         and your sealed picks open there too.

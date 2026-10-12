@@ -64,7 +64,10 @@ export function WalletButton() {
         className="flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-sm"
       >
         <span className="font-bold text-accent-2">{formatPoints(w.points)} pts</span>
-        <span className="text-muted">{w.handle || shortAddress(w.address)}</span>
+        <span className="text-muted">
+          {w.persona ? "🕶️ " : ""}
+          {w.handle || shortAddress(w.address)}
+        </span>
       </Link>
     );
   }

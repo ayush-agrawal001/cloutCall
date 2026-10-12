@@ -8,6 +8,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useMemo,
   useSyncExternalStore,
   type ReactNode,
 } from "react";
@@ -38,6 +39,11 @@ type WalletCtx = {
   create: (handle: string) => Promise<void>;
   signIn: () => Promise<void>;
   signOut: () => void;
+  /** Current persona name ("" = main account). Personas are unlinkable accounts from the same passkey. */
+  persona: string;
+  personas: string[];
+  /** One passkey prompt opens the named persona's account ("" switches back to the main account). */
+  switchPersona: (name: string) => Promise<void>;
   /** Sends inside the scoped session; re-prompts the passkey if the call is out of scope. */
   write: (
     label: string,
@@ -51,6 +57,7 @@ type WalletCtx = {
 
 const Ctx = createContext<WalletCtx | null>(null);
 const HANDLE_KEY = "cloutcall.handle";
+const PERSONAS_KEY = "cloutcall.personas";
 
 export function useWallet() {
   const ctx = useContext(Ctx);
@@ -80,6 +87,13 @@ function subscribeLocal(cb: () => void) {
 function notifyLocal() {
   localListeners.forEach((l) => l());
 }
+function readPersonas() {
+  try {
+    return localStorage.getItem(PERSONAS_KEY) ?? "[]";
+  } catch {
+    return "[]";
+  }
+}
 function readHandle() {
   try {
     return localStorage.getItem(HANDLE_KEY) ?? "";
@@ -98,6 +112,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     () => !!loadCredential(),
     () => false,
   );
+  const personasRaw = useSyncExternalStore(subscribeLocal, readPersonas, () => "[]");
+  const personas = useMemo(() => {
+    try {
+      return JSON.parse(personasRaw) as string[];
+    } catch {
+      return [];
+    }
+  }, [personasRaw]);
+  const [persona, setPersona] = useState("");
+  const personaRef = useRef("");
   const [points, setPoints] = useState(0n);
   const [session, setSession] = useState<SessionInfo>();
   const [lastTx, setLastTx] = useState<LastTx>();
@@ -213,7 +237,27 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     [setHandle, start],
   );
 
-  const signIn = useCallback(() => start(meraSignIn), [start]);
+  const signIn = useCallback(async () => {
+    personaRef.current = "";
+    setPersona("");
+    await start(() => meraSignIn());
+  }, [start]);
+
+  const switchPersona = useCallback(
+    async (name: string) => {
+      const clean = name.replace(/[^\w.-]/g, "").slice(0, 20);
+      personaRef.current = clean;
+      setPersona(clean);
+      if (clean && !personas.includes(clean)) {
+        try {
+          localStorage.setItem(PERSONAS_KEY, JSON.stringify([...personas, clean].slice(-12)));
+        } catch {}
+        notifyLocal();
+      }
+      await start(() => meraSignIn(clean || undefined));
+    },
+    [personas, start],
+  );
 
   const signOut = useCallback(() => {
     sessionRef.current?.end();
@@ -234,7 +278,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       } catch (e) {
         if (!(e instanceof SessionScopeError)) throw e;
         // Out of scope: one more passkey prompt opens a fresh, bounded session, then retry once.
-        const { session: mera } = await meraSignIn();
+        const { session: mera } = await meraSignIn(personaRef.current || undefined);
         sessionRef.current?.end();
         sessionRef.current = new ScopedSession(mera);
         const res = await send(label, req, pointsAtRisk);
@@ -252,8 +296,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       value={{
         status,
         address,
-        handle,
+        // In a persona, only the persona name is ever shown or shared, never the main handle.
+        handle: persona || handle,
         setHandle,
+        persona,
+        personas,
+        switchPersona,
         hasPasskey,
         points,
         session,

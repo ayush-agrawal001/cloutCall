@@ -28,6 +28,8 @@ import { wordlist } from "@scure/bip39/wordlists/english.js";
 const CREDENTIAL_KEY = "cloutcall.credential.v1";
 
 export const WALLET_PATH = "m/44'/60'/0'/0/0";
+/** Personas live on their own BIP-44 account branch, one index per persona name. */
+export const PERSONA_BRANCH = "m/44'/60'/7'/0";
 
 export function rpId() {
   return window.location.hostname;
@@ -66,8 +68,8 @@ export function deriveEvmPrivateKey(prfOutput: Uint8Array, path = WALLET_PATH): 
   return key;
 }
 
-function sessionFromPrf(prfOutput: Uint8Array): Secp256k1SigningSession {
-  const privateKey = deriveEvmPrivateKey(prfOutput);
+function sessionFromPrf(prfOutput: Uint8Array, path = WALLET_PATH): Secp256k1SigningSession {
+  const privateKey = deriveEvmPrivateKey(prfOutput, path);
   try {
     return createSecp256k1SigningSession({ privateKey });
   } finally {
@@ -86,12 +88,23 @@ export async function createAccount(handle: string) {
   return { session: sessionFromPrf(new Uint8Array(res.prfOutput)), credentialId: res.credentialId };
 }
 
-/** Returning visit: one passkey prompt rebuilds the exact same account, on any device. */
-export async function signIn() {
+/** Derivation path for a named persona: an unrelated, unlinkable address from the same passkey. */
+export async function personaPath(name: string) {
+  const h = await sha256(new TextEncoder().encode(`cloutcall/persona/v1:${name.trim().toLowerCase()}`));
+  const index = ((h[0] << 24) | (h[1] << 16) | (h[2] << 8) | h[3]) & 0x7fffffff;
+  return `${PERSONA_BRANCH}/${index}`;
+}
+
+/**
+ * Returning visit: one passkey prompt rebuilds the exact same account, on any device. With a persona
+ * name, the same prompt opens that persona's separate account instead.
+ */
+export async function signIn(persona?: string) {
   const credential = loadCredential();
+  const path = persona ? await personaPath(persona) : WALLET_PATH;
   const res = await getPasskeyPrfOutput({ rpId: rpId(), credential });
   saveCredential({ credentialId: res.credentialId, transports: credential?.transports });
-  return { session: sessionFromPrf(new Uint8Array(res.prfOutput)), credentialId: res.credentialId };
+  return { session: sessionFromPrf(new Uint8Array(res.prfOutput), path), credentialId: res.credentialId };
 }
 
 export async function sha256(bytes: Uint8Array) {

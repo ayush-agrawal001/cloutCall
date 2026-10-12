@@ -3,6 +3,7 @@
 import { explorerAddress, explorerTx, NETWORK_LABEL } from "@/lib/chain";
 import { formatPoints } from "@/lib/markets";
 import { KeysPanel } from "./KeysPanel";
+import { PersonasPanel } from "./PersonasPanel";
 import { SignInPanel } from "./WalletButton";
 import { forgetThisDevice, useWallet } from "./WalletProvider";
 
@@ -46,6 +47,8 @@ export function AccountPanel() {
           </p>
         </div>
       )}
+
+      <PersonasPanel />
 
       <KeysPanel />
 
