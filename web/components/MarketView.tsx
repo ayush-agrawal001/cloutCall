@@ -21,6 +21,8 @@ import { ActivityFeed } from "./ActivityFeed";
 import { CallPanel, type CallResult } from "./CallPanel";
 import { PhaseBadge, PoolBar } from "./MarketCard";
 import { RevealPanel } from "./RevealPanel";
+import { ShareCard } from "./ShareCard";
+import { duelPath, winText } from "@/lib/share";
 import { useWallet } from "./WalletProvider";
 
 type Position = {
@@ -111,6 +113,7 @@ export function MarketView({
   const [, tick] = useState(0);
   const [claiming, setClaiming] = useState(false);
   const [claimErr, setClaimErr] = useState<string>();
+  const [won, setWon] = useState<bigint>();
 
   useEffect(() => {
     const t = setInterval(() => tick((x) => x + 1), 1000);
@@ -148,12 +151,15 @@ export function MarketView({
     setClaiming(true);
     setClaimErr(undefined);
     try {
+      const payout = claimable;
       await w.write(`Collected from market #${id}`, {
         address: MARKET_ADDRESS,
         abi: marketAbi,
         functionName: "claim",
         args: [id],
       });
+      const stake = staked;
+      if (payout > stake) setWon(payout - stake);
       await reloadPos();
     } catch (e) {
       setClaimErr(describeTxError(e));
@@ -259,6 +265,23 @@ export function MarketView({
                 </button>
               ))}
             {claimErr && <p className="text-no">{claimErr}</p>}
+            {won !== undefined && w.address && (
+              <ShareCard
+                heading="You called it — flex on the timeline"
+                path={duelPath({
+                  marketId: id,
+                  from: w.address,
+                  handle: w.handle,
+                  side: market.outcome as SideValue,
+                  won,
+                })}
+                text={winText({
+                  title: meta?.title ?? "this video",
+                  won: formatPoints(won),
+                  side: market.outcome as SideValue,
+                })}
+              />
+            )}
           </div>
         )}
       </div>

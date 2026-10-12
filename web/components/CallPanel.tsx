@@ -4,9 +4,12 @@ import { useState } from "react";
 import type { Address } from "viem";
 import { marketAbi } from "@/lib/abi";
 import { explorerTx, MARKET_ADDRESS, NETWORK_LABEL } from "@/lib/chain";
-import { formatPoints, multiple, phaseOf, Side, type Market, type SideValue } from "@/lib/markets";
+import { formatPoints, formatViews, multiple, phaseOf, Side, type Market, type SideValue } from "@/lib/markets";
 import { commitmentFor, saltFor, unlockSealedKey } from "@/lib/sealed";
 import { describeTxError } from "@/lib/tx";
+import { duelPath, duelText } from "@/lib/share";
+import { useVideoMeta } from "@/lib/useVideoMeta";
+import { ShareCard } from "./ShareCard";
 import { SignInPanel } from "./WalletButton";
 import { useWallet } from "./WalletProvider";
 
@@ -35,6 +38,7 @@ export function CallPanel({
   const [err, setErr] = useState<string>();
   const [done, setDone] = useState<CallResult>();
   const [sealed, setSealed] = useState(false);
+  const meta = useVideoMeta(market.videoId);
 
   if (phaseOf(market) !== "open") return null;
   if (w.status !== "ready") return <SignInPanel />;
@@ -171,6 +175,26 @@ export function CallPanel({
             )}
           </p>
         </div>
+      )}
+      {done && w.address && (
+        <ShareCard
+          heading="Dare a friend to take the other side"
+          path={duelPath({
+            marketId: market.id,
+            from: w.address,
+            handle: w.handle,
+            side: done.sealed ? undefined : done.side,
+            sealed: done.sealed,
+            ms: done.ms,
+          })}
+          text={duelText({
+            title: meta?.title ?? "this video",
+            target: formatViews(market.threshold),
+            side: done.side,
+            sealed: done.sealed,
+            ms: done.ms,
+          })}
+        />
       )}
     </div>
   );
