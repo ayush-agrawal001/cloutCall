@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { formatPoints, shortAddress } from "@/lib/markets";
+import { PixelAvatar, PixelIcon } from "./Pixel";
 import { useWallet } from "./WalletProvider";
 
 export function SignInPanel({ compact = false }: { compact?: boolean }) {
@@ -23,7 +24,7 @@ export function SignInPanel({ compact = false }: { compact?: boolean }) {
           value={handle}
           onChange={(e) => setHandle(e.target.value.replace(/[^\w.-]/g, "").slice(0, 20))}
           placeholder="Pick a handle (e.g. viewcounter)"
-          className="w-full rounded-xl border border-line bg-surface-2 px-4 py-3 outline-none focus:border-accent"
+          className="h-[50px] w-full border border-line bg-transparent px-3.5 outline-none focus:border-lime focus:shadow-[0_0_0_1px_#39ff14]"
         />
       )}
       <div className="flex flex-wrap gap-2">
@@ -45,7 +46,7 @@ export function SignInPanel({ compact = false }: { compact?: boolean }) {
         </button>
       </div>
       {w.error && (
-        <p className="rounded-xl bg-no/10 p-3 text-sm text-no" onClick={w.clearError}>
+        <p className="border border-no bg-no/10 p-3 text-sm text-no" onClick={w.clearError}>
           {w.error}
         </p>
       )}
@@ -59,25 +60,25 @@ export function WalletButton() {
 
   if (w.status === "ready" && w.address) {
     return (
-      <Link
-        href="/me"
-        className="flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-sm"
-      >
-        <span className="font-bold text-accent-2">{formatPoints(w.points)} pts</span>
-        <span className="text-muted">
-          {w.persona ? "🕶️ " : ""}
-          {w.handle || shortAddress(w.address)}
+      <Link href="/me" className="flex items-center gap-3 text-text no-underline">
+        <PixelAvatar seed={w.address} size={42} />
+        <span className="flex flex-col gap-0.5 leading-tight">
+          <span className="flex items-center gap-1.5 text-sm font-bold tracking-tight">
+            {w.persona && <PixelIcon name="eye" size={12} label="Persona" />}
+            {w.handle || shortAddress(w.address)}
+          </span>
+          <span className="font-mono text-[11px] text-muted">{formatPoints(w.points)} pts</span>
         </span>
       </Link>
     );
   }
   return (
     <div className="relative">
-      <button className="btn btn-accent px-4 py-1.5 text-sm" onClick={() => setOpen((o) => !o)}>
+      <button className="btn btn-accent h-11 px-4 py-0 text-sm uppercase" onClick={() => setOpen((o) => !o)}>
         {w.status === "connecting" || w.status === "funding" ? "Connecting…" : "Sign in"}
       </button>
       {open && w.status !== "ready" && (
-        <div className="card absolute right-0 top-12 z-30 w-80 p-4 shadow-2xl">
+        <div className="card absolute right-0 top-14 z-30 w-80 p-4 shadow-[6px_6px_0_var(--lift)]">
           <SignInPanel compact />
         </div>
       )}
