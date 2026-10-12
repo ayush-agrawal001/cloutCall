@@ -30,3 +30,4 @@ indexer/generated/
 cre/cloutcall-settle/dist/
 contracts/broadcast/**/run-[0-9]*.json
 contracts/broadcast/**/*.lock
+resolver/keeper.log
