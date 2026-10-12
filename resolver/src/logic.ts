@@ -42,3 +42,15 @@ export function parseDuration(s: string): number {
   if (!m) throw new Error(`bad duration "${s}" (use e.g. 30m, 6h, 1d)`);
   return Number(m[1]) * { s: 1, m: 60, h: 3600, d: 86400 }[m[2] as "s" | "m" | "h" | "d"];
 }
+
+/**
+ * Target for a short "sprint" market on a fresh upload: current views plus the views expected over the
+ * window at the upload's average pace so far, discounted for decay. Rounded to a readable number at the
+ * scale of the expected gain, so it lands near a coin flip rather than a sure thing.
+ */
+export function sprintThreshold(views: bigint, hoursSincePublish: number, windowHours: number, decay = 0.8): bigint {
+  const pacePerHour = Number(views) / Math.max(0.25, hoursSincePublish);
+  const gain = Math.max(100, pacePerHour * windowHours * decay);
+  const unit = 10 ** Math.max(0, Math.floor(Math.log10(gain)) - 1);
+  return BigInt(Math.round((Number(views) + gain) / unit) * unit);
+}

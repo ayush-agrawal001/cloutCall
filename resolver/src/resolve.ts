@@ -9,14 +9,38 @@ import { load, requireYoutubeKey } from "./config";
 import { decide } from "./logic";
 import { readAllMarkets } from "./markets";
 import { getStats } from "./youtube";
+import { openSprintCount, seedSprints } from "./sprints";
 
-const { values } = parseArgs({ options: { once: { type: "boolean", default: false }, every: { type: "string", default: "30" } } });
+const { values } = parseArgs({
+  options: {
+    once: { type: "boolean", default: false },
+    every: { type: "string", default: "30" },
+    // Keep this many Hype Sprints open, seeding fresh uploads when below.
+    sprints: { type: "string", default: "0" },
+  },
+});
 
 const cfg = load();
 if (!cfg.wallet) throw new Error("Set RESOLVER_PRIVATE_KEY");
 const apiKey = requireYoutubeKey(cfg.youtubeKey);
 
+async function topUpSprints() {
+  const want = Number(values.sprints);
+  if (!want) return;
+  const { count } = await openSprintCount(cfg);
+  if (count >= want) return;
+  const opened = await seedSprints(cfg, apiKey, {
+    count: want - count,
+    region: "US",
+    maxAgeSec: 12 * 3600,
+    closeIn: 10 * 60,
+    resolveIn: 30 * 60,
+  });
+  for (const o of opened) console.log(`⚡ opened sprint #${o.id}: ${o.title} → ${o.threshold}`);
+}
+
 async function tick() {
+  await topUpSprints().catch((e) => console.error("sprint seeding failed:", e instanceof Error ? e.message : e));
   const now = (await cfg.publicClient.getBlock()).timestamp;
   const due = (await readAllMarkets(cfg.publicClient, cfg.market)).filter((m) => m.status === 0 && m.resolveTime <= now);
   if (due.length === 0) return;

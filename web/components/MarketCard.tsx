@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useAiPick } from "@/lib/ai";
+import { isSprint } from "./PacePanel";
 import { useVideoMeta } from "@/lib/useVideoMeta";
 import { formatPoints, formatViews, phaseOf, Side, thumbnail, timeLeft, yesShare, type Market } from "@/lib/markets";
 
@@ -56,8 +57,11 @@ export function MarketCard({ market }: { market: Market }) {
           alt=""
           className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
         />
-        <div className="absolute left-3 top-3">
+        <div className="absolute left-3 top-3 flex gap-1.5">
           <PhaseBadge market={market} />
+          {isSprint(market) && (
+            <span className="rounded-full bg-warn px-2.5 py-1 text-xs font-bold text-bg">⚡ Sprint</span>
+          )}
         </div>
         {ai && (
           <div className="absolute right-3 top-3 rounded-full bg-bg/80 px-2.5 py-1 text-xs font-semibold backdrop-blur">

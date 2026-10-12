@@ -51,3 +51,12 @@ test("getStats parses the YouTube API response", async () => {
   assert.equal(stats.has("deletedvid1"), false);
   assert.equal(toStats({ id: "x" }), null);
 });
+
+test("sprintThreshold projects the upload's pace over the window", async () => {
+  const { sprintThreshold } = await import("../src/logic");
+  // 600k views in 3h = 200k/h; 30 min window at 0.8 decay = +80k
+  assert.equal(sprintThreshold(600_000n, 3, 0.5), 680_000n);
+  // readable rounding at the scale of the gain
+  assert.equal(sprintThreshold(1_234_567n, 10, 0.5), 1_284_000n);
+  assert.ok(sprintThreshold(50n, 0.1, 0.5) > 50n);
+});

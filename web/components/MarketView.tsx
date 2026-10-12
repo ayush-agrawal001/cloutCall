@@ -22,6 +22,7 @@ import { CallPanel, type CallResult } from "./CallPanel";
 import { PhaseBadge, PoolBar } from "./MarketCard";
 import { RevealPanel } from "./RevealPanel";
 import { AiRivalCard } from "./AiRivalCard";
+import { PacePanel } from "./PacePanel";
 import { useAiPick } from "@/lib/ai";
 import { AGENT_ADDRESS } from "@/lib/chain";
 import { ShareCard } from "./ShareCard";
@@ -239,6 +240,7 @@ export function MarketView({
       </div>
 
       <div className="space-y-4">
+        <PacePanel market={market} />
         <AiRivalCard market={market} pick={aiPick} dueling={duelAi} onDuel={() => setDuelAi((d) => !d)} />
         <CallPanel
           key={duelAi && aiPick ? "duel-ai" : "default"}

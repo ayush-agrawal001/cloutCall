@@ -6,11 +6,14 @@ createServer((req, res) => {
   const url = new URL(req.url, `http://localhost:${port}`);
   res.setHeader("content-type", "application/json");
   if (url.pathname === "/youtube/v3/videos") {
-    const ids = (url.searchParams.get("id") ?? "").split(",").filter(Boolean);
+    // Trending chart: three "fresh" uploads. Views grow over time so pace panels have something to show.
+    const fresh = ["aqz-KE-bpKQ", "jNQXAC9IVRw", "M7lc1UVf-VE"];
+    const ids = url.searchParams.get("chart") ? fresh : (url.searchParams.get("id") ?? "").split(",").filter(Boolean);
+    const grow = Math.floor((Date.now() / 1000) % 100000) * 37;
     const items = ids.map((id) => ({
       id,
-      snippet: { title: `Mock video ${id}`, channelTitle: "Mock Channel", channelId: "UCmockchannel0000000000", publishedAt: new Date(Date.now() - 3 * 3.6e6).toISOString() },
-      statistics: { viewCount: "1700000000", likeCount: "17000000", commentCount: "2000000" },
+      snippet: { title: `Mock video ${id}`, channelTitle: "Mock Channel", channelId: "UCmockchannel0000000000", publishedAt: new Date(Date.now() - (fresh.includes(id) ? 2 : 3) * 3.6e6).toISOString() },
+      statistics: { viewCount: String(fresh.includes(id) ? 400000 + grow : 1700000000), likeCount: "17000", commentCount: "2000" },
     }));
     return res.end(JSON.stringify({ items }));
   }
