@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useAiPick } from "@/lib/ai";
 import { useVideoMeta } from "@/lib/useVideoMeta";
 import { formatPoints, formatViews, phaseOf, Side, thumbnail, timeLeft, yesShare, type Market } from "@/lib/markets";
 
@@ -44,6 +45,7 @@ export function PoolBar({ market }: { market: Market }) {
 
 export function MarketCard({ market }: { market: Market }) {
   const meta = useVideoMeta(market.videoId);
+  const ai = useAiPick(market.id);
   const gain = market.threshold > market.baselineViews ? market.threshold - market.baselineViews : 0n;
   return (
     <Link href={`/m/${market.id}`} className="card group block overflow-hidden transition hover:border-accent/60">
@@ -57,6 +59,13 @@ export function MarketCard({ market }: { market: Market }) {
         <div className="absolute left-3 top-3">
           <PhaseBadge market={market} />
         </div>
+        {ai && (
+          <div className="absolute right-3 top-3 rounded-full bg-bg/80 px-2.5 py-1 text-xs font-semibold backdrop-blur">
+            🤖{" "}
+            <span className={ai.side === Side.Yes ? "text-yes" : "text-no"}>{ai.side === Side.Yes ? "YES" : "NO"}</span>{" "}
+            {ai.confidence}%
+          </div>
+        )}
       </div>
       <div className="space-y-3 p-4">
         <div>

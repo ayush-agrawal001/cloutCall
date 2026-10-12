@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { HumansVsAi } from "@/components/HumansVsAi";
 import { Leaderboard } from "@/components/Leaderboard";
 
 export const metadata: Metadata = { title: "Leaderboard" };
@@ -10,6 +11,7 @@ export default function LeaderboardPage() {
         <h1 className="text-3xl font-black">Leaderboard</h1>
         <p className="text-muted">Best callers on CloutCall. Points can only be won, never bought.</p>
       </div>
+      <HumansVsAi />
       <Leaderboard />
     </div>
   );

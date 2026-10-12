@@ -17,11 +17,29 @@ export function load() {
   const dep = JSON.parse(readFileSync(join(root, "deployments", `${chainId}.json`), "utf8")) as {
     market: Address;
     points: Address;
+    journal?: Address;
+    registry?: Address;
   };
   const key = (process.env.RESOLVER_PRIVATE_KEY ?? process.env.DEPLOYER_PRIVATE_KEY) as Hex | undefined;
   const publicClient = createPublicClient({ chain, transport: http(rpc) });
   const wallet = key ? createWalletClient({ account: privateKeyToAccount(key), chain, transport: http(rpc) }) : undefined;
-  return { chainId, chain, market: dep.market, publicClient, wallet, youtubeKey: process.env.YOUTUBE_API_KEY };
+  const agentKey = process.env.AGENT_PRIVATE_KEY as Hex | undefined;
+  const agentWallet = agentKey
+    ? createWalletClient({ account: privateKeyToAccount(agentKey), chain, transport: http(rpc) })
+    : undefined;
+  return {
+    chainId,
+    chain,
+    market: dep.market,
+    points: dep.points,
+    journal: dep.journal,
+    registry: dep.registry,
+    publicClient,
+    wallet,
+    agentWallet,
+    youtubeKey: process.env.YOUTUBE_API_KEY,
+    kimiKey: process.env.KIMI_API_KEY,
+  };
 }
 
 export function requireYoutubeKey(key: string | undefined): string {

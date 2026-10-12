@@ -4,6 +4,8 @@ export type OnchainMarket = {
   id: bigint;
   videoId: string;
   threshold: bigint;
+  baselineViews?: bigint;
+  closeTime?: bigint;
   resolveTime: bigint;
   status: number; // 0 open, 1 resolved, 2 voided
 };

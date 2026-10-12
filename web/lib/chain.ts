@@ -21,6 +21,9 @@ export const NETWORK_LABEL =
 
 export const MARKET_ADDRESS = (process.env.NEXT_PUBLIC_MARKET_ADDRESS ?? "0x") as Address;
 export const POINTS_ADDRESS = (process.env.NEXT_PUBLIC_POINTS_ADDRESS ?? "0x") as Address;
+export const JOURNAL_ADDRESS = (process.env.NEXT_PUBLIC_JOURNAL_ADDRESS || undefined) as Address | undefined;
+export const REGISTRY_ADDRESS = (process.env.NEXT_PUBLIC_REGISTRY_ADDRESS || undefined) as Address | undefined;
+export const AGENT_ADDRESS = (process.env.NEXT_PUBLIC_AGENT_ADDRESS || undefined) as Address | undefined;
 export const START_BLOCK = BigInt(process.env.NEXT_PUBLIC_START_BLOCK ?? "0");
 export const ENVIO_URL = process.env.NEXT_PUBLIC_ENVIO_URL || "";
 

@@ -1,3 +1,4 @@
+import { HumansVsAi } from "@/components/HumansVsAi";
 import { MarketFeed } from "@/components/MarketFeed";
 
 export default function Home() {
@@ -12,9 +13,10 @@ export default function Home() {
         </h1>
         <p className="mt-4 max-w-xl text-muted">
           Will that new upload cross the view target? Tap Face ID, make your call, and watch it settle in under a
-          second. Then dare a friend to take the other side.
+          second. Then dare a friend — or our AI — to take the other side.
         </p>
       </section>
+      <HumansVsAi />
       <section>
         <h2 className="mb-4 text-lg font-bold">Live markets</h2>
         <MarketFeed />

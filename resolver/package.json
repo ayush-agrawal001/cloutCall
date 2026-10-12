@@ -7,7 +7,8 @@
     "seed-trending": "tsx --env-file-if-exists=../.env src/seed-trending.ts",
     "resolve": "tsx --env-file-if-exists=../.env src/resolve.ts",
     "test": "tsx --test test/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "agent": "tsx --env-file-if-exists=../.env src/agent.ts"
   },
   "dependencies": {
     "viem": "^2.57.4"

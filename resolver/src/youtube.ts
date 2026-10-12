@@ -4,17 +4,21 @@ export type VideoStats = {
   id: string;
   title: string;
   channel: string;
+  channelId: string;
   views: bigint;
+  likes: bigint;
+  comments: bigint;
   publishedAt: string;
 };
 
 type ApiVideo = {
   id: string;
-  snippet?: { title?: string; channelTitle?: string; publishedAt?: string };
-  statistics?: { viewCount?: string };
+  snippet?: { title?: string; channelTitle?: string; channelId?: string; publishedAt?: string };
+  statistics?: { viewCount?: string; likeCount?: string; commentCount?: string };
 };
 
-const API = "https://www.googleapis.com/youtube/v3/videos";
+// Overridable for local end-to-end tests against a mock server.
+const API = process.env.YOUTUBE_API_BASE ?? "https://www.googleapis.com/youtube/v3/videos";
 
 export function parseVideoId(input: string): string | null {
   const trimmed = input.trim();
@@ -38,7 +42,10 @@ export function toStats(item: ApiVideo): VideoStats | null {
     id: item.id,
     title: item.snippet?.title ?? item.id,
     channel: item.snippet?.channelTitle ?? "",
+    channelId: item.snippet?.channelId ?? "",
     views: BigInt(views),
+    likes: BigInt(item.statistics?.likeCount ?? "0"),
+    comments: BigInt(item.statistics?.commentCount ?? "0"),
     publishedAt: item.snippet?.publishedAt ?? "",
   };
 }

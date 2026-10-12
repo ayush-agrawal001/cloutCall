@@ -11,13 +11,21 @@ const envPath = join(root, ".env.local");
 const keep = existsSync(envPath)
   ? readFileSync(envPath, "utf8")
       .split("\n")
-      .filter((l) => l && !/^NEXT_PUBLIC_(CHAIN_ID|MARKET_ADDRESS|POINTS_ADDRESS|START_BLOCK)=/.test(l))
+      .filter(
+        (l) =>
+          l &&
+          !/^NEXT_PUBLIC_(CHAIN_ID|MARKET_ADDRESS|POINTS_ADDRESS|START_BLOCK|JOURNAL_ADDRESS|REGISTRY_ADDRESS|AGENT_ADDRESS)=/.test(
+            l,
+          ),
+      )
   : [];
 const lines = [
   `NEXT_PUBLIC_CHAIN_ID=${dep.chainId}`,
   `NEXT_PUBLIC_MARKET_ADDRESS=${dep.market}`,
   `NEXT_PUBLIC_POINTS_ADDRESS=${dep.points}`,
   `NEXT_PUBLIC_START_BLOCK=${dep.startBlock}`,
+  ...(dep.journal ? [`NEXT_PUBLIC_JOURNAL_ADDRESS=${dep.journal}`, `NEXT_PUBLIC_AGENT_ADDRESS=${dep.agent}`] : []),
+  ...(dep.registry ? [`NEXT_PUBLIC_REGISTRY_ADDRESS=${dep.registry}`] : []),
   ...keep,
 ];
 writeFileSync(envPath, lines.join("\n") + "\n");

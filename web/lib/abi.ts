@@ -1593,3 +1593,495 @@ export const pointsAbi = [
     inputs: [],
   },
 ] as const;
+
+export const journalAbi = [
+  {
+    type: "constructor",
+    inputs: [
+      {
+        name: "market_",
+        type: "address",
+        internalType: "contract CloutMarket",
+      },
+    ],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "MAX_REASONING",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "isAgent",
+    inputs: [
+      {
+        name: "",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "bool",
+        internalType: "bool",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "market",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "address",
+        internalType: "contract CloutMarket",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "owner",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "pickOf",
+    inputs: [
+      {
+        name: "marketId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "agent",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "tuple",
+        internalType: "struct AgentJournal.Pick",
+        components: [
+          {
+            name: "side",
+            type: "uint8",
+            internalType: "enum CloutMarket.Side",
+          },
+          {
+            name: "confidenceBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "predictedViews",
+            type: "uint64",
+            internalType: "uint64",
+          },
+          {
+            name: "recordedAt",
+            type: "uint64",
+            internalType: "uint64",
+          },
+          {
+            name: "model",
+            type: "string",
+            internalType: "string",
+          },
+          {
+            name: "reasoning",
+            type: "string",
+            internalType: "string",
+          },
+        ],
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "record",
+    inputs: [
+      {
+        name: "marketId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "side",
+        type: "uint8",
+        internalType: "enum CloutMarket.Side",
+      },
+      {
+        name: "confidenceBps",
+        type: "uint16",
+        internalType: "uint16",
+      },
+      {
+        name: "predictedViews",
+        type: "uint64",
+        internalType: "uint64",
+      },
+      {
+        name: "model",
+        type: "string",
+        internalType: "string",
+      },
+      {
+        name: "reasoning",
+        type: "string",
+        internalType: "string",
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "setAgent",
+    inputs: [
+      {
+        name: "agent",
+        type: "address",
+        internalType: "address",
+      },
+      {
+        name: "allowed",
+        type: "bool",
+        internalType: "bool",
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "event",
+    name: "AgentPick",
+    inputs: [
+      {
+        name: "marketId",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "agent",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "side",
+        type: "uint8",
+        indexed: false,
+        internalType: "enum CloutMarket.Side",
+      },
+      {
+        name: "confidenceBps",
+        type: "uint16",
+        indexed: false,
+        internalType: "uint16",
+      },
+      {
+        name: "predictedViews",
+        type: "uint64",
+        indexed: false,
+        internalType: "uint64",
+      },
+      {
+        name: "model",
+        type: "string",
+        indexed: false,
+        internalType: "string",
+      },
+      {
+        name: "reasoning",
+        type: "string",
+        indexed: false,
+        internalType: "string",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "AgentSet",
+    inputs: [
+      {
+        name: "agent",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "allowed",
+        type: "bool",
+        indexed: false,
+        internalType: "bool",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "error",
+    name: "AlreadyRecorded",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "BadInput",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "MarketClosed",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "NoStakeOnSide",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "NotAgent",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "NotOwner",
+    inputs: [],
+  },
+] as const;
+
+export const registryAbi = [
+  {
+    type: "constructor",
+    inputs: [
+      {
+        name: "verifier",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "attest",
+    inputs: [
+      {
+        name: "creator",
+        type: "address",
+        internalType: "address",
+      },
+      {
+        name: "channelId",
+        type: "string",
+        internalType: "string",
+      },
+      {
+        name: "channelTitle",
+        type: "string",
+        internalType: "string",
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "channelOf",
+    inputs: [
+      {
+        name: "",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "string",
+        internalType: "string",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "creatorOf",
+    inputs: [
+      {
+        name: "",
+        type: "string",
+        internalType: "string",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "isVerifier",
+    inputs: [
+      {
+        name: "",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "bool",
+        internalType: "bool",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "owner",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "setVerifier",
+    inputs: [
+      {
+        name: "verifier",
+        type: "address",
+        internalType: "address",
+      },
+      {
+        name: "allowed",
+        type: "bool",
+        internalType: "bool",
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "unlink",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "event",
+    name: "CreatorUnlinked",
+    inputs: [
+      {
+        name: "creator",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "channelId",
+        type: "string",
+        indexed: false,
+        internalType: "string",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "CreatorVerified",
+    inputs: [
+      {
+        name: "creator",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "channelId",
+        type: "string",
+        indexed: false,
+        internalType: "string",
+      },
+      {
+        name: "channelTitle",
+        type: "string",
+        indexed: false,
+        internalType: "string",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "VerifierSet",
+    inputs: [
+      {
+        name: "verifier",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "allowed",
+        type: "bool",
+        indexed: false,
+        internalType: "bool",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "error",
+    name: "BadChannel",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "NotOwner",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "NotVerifier",
+    inputs: [],
+  },
+] as const;

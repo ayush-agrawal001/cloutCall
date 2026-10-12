@@ -21,6 +21,9 @@ import { ActivityFeed } from "./ActivityFeed";
 import { CallPanel, type CallResult } from "./CallPanel";
 import { PhaseBadge, PoolBar } from "./MarketCard";
 import { RevealPanel } from "./RevealPanel";
+import { AiRivalCard } from "./AiRivalCard";
+import { useAiPick } from "@/lib/ai";
+import { AGENT_ADDRESS } from "@/lib/chain";
 import { ShareCard } from "./ShareCard";
 import { duelPath, winText } from "@/lib/share";
 import { useWallet } from "./WalletProvider";
@@ -122,6 +125,8 @@ export function MarketView({
   const [claiming, setClaiming] = useState(false);
   const [claimErr, setClaimErr] = useState<string>();
   const [won, setWon] = useState<bigint>();
+  const aiPick = useAiPick(id);
+  const [duelAi, setDuelAi] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => tick((x) => x + 1), 1000);
@@ -234,10 +239,12 @@ export function MarketView({
       </div>
 
       <div className="space-y-4">
+        <AiRivalCard market={market} pick={aiPick} dueling={duelAi} onDuel={() => setDuelAi((d) => !d)} />
         <CallPanel
+          key={duelAi && aiPick ? "duel-ai" : "default"}
           market={market}
-          rival={rival}
-          suggestedSide={suggestedSide}
+          rival={duelAi && aiPick ? AGENT_ADDRESS : rival}
+          suggestedSide={duelAi && aiPick ? (aiPick.side === Side.Yes ? Side.No : Side.Yes) : suggestedSide}
           hasSealed={!!pos && pos.commitment !== `0x${"0".repeat(64)}`}
           onCalled={(r) => {
             reload();

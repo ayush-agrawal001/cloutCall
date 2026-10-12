@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { marketAbi } from "@/lib/abi";
-import { ENVIO_URL, explorerAddress, MARKET_ADDRESS, publicClient } from "@/lib/chain";
+import { AGENT_ADDRESS, ENVIO_URL, explorerAddress, MARKET_ADDRESS, publicClient } from "@/lib/chain";
 import { formatPoints, shortAddress } from "@/lib/markets";
 import { useWallet } from "./WalletProvider";
 
@@ -114,7 +114,11 @@ export function Leaderboard() {
                   <td className="px-4 py-3 font-bold">{i < 3 ? ["🥇", "🥈", "🥉"][i] : i + 1}</td>
                   <td className="px-4 py-3 font-mono">
                     <a href={explorerAddress(r.address)} target="_blank" className="hover:text-accent-2">
-                      {me ? "You" : shortAddress(r.address)}
+                      {me
+                        ? "You"
+                        : AGENT_ADDRESS && r.address.toLowerCase() === AGENT_ADDRESS.toLowerCase()
+                          ? "🤖 CloutBot (AI)"
+                          : shortAddress(r.address)}
                     </a>
                   </td>
                   <td className="px-4 py-3 text-right font-bold">{formatPoints(r.points)}</td>

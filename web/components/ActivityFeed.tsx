@@ -1,13 +1,15 @@
 "use client";
 
 import type { Address } from "viem";
-import { explorerTx } from "@/lib/chain";
+import { AGENT_ADDRESS, explorerTx } from "@/lib/chain";
 import type { MarketEvent } from "@/lib/live";
 import { formatPoints, formatViews, shortAddress, Side } from "@/lib/markets";
 
 function who(a: unknown, me?: Address) {
   const addr = String(a);
-  return me && addr.toLowerCase() === me.toLowerCase() ? "You" : shortAddress(addr);
+  if (me && addr.toLowerCase() === me.toLowerCase()) return "You";
+  if (AGENT_ADDRESS && addr.toLowerCase() === AGENT_ADDRESS.toLowerCase()) return "🤖 CloutBot";
+  return shortAddress(addr);
 }
 
 function describe(e: MarketEvent, me?: Address) {
