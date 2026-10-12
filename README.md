@@ -6,6 +6,8 @@ CloutCall is a social prediction game on **Monad**. Tap Face ID, call whether a 
 video will cross a view target, watch your call land in a few hundred milliseconds, and send a friend a
 duel link to take the other side.
 
+**Live app (Monad testnet): https://cloutcall.vercel.app**
+
 Built for the Monad **Metropolis** hackathon · **Track 03 — Social, Attention & Culture**
 ("markets on cultural outcomes").
 
