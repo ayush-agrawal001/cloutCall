@@ -17,7 +17,11 @@ creates a duel link that unfurls on X and LinkedIn as a generated card, so the p
 the argument itself. Sealed calls hide your side behind a commit-reveal derived from a second passkey
 PRF namespace, revealable from any device. Markets settle through a Chainlink CRE workflow (median of
 DON nodes' YouTube reads → signed report → `onReport`), and an Envio HyperIndex indexer powers streaks,
-duels and upsets on the leaderboard. Points are soulbound with no cash value: no creator tokens, no
+duels and upsets on the leaderboard. **Beat the AI:** CloutBot, powered by Kimi, stakes on every market and
+posts its reasoning on-chain before calls close — players duel it, and a Humans vs AI scoreboard asks
+whether people predict virality better than a model. **Hype Sprints** run 30-minute markets on fresh
+uploads with a live pace panel. **Creator mode** lets verified creators host markets on their own uploads,
+and **personas** give one passkey many unlinkable identities. Points are soulbound with no cash value: no creator tokens, no
 securities, no consent needed.
 
 **Go-to-market:**
@@ -33,6 +37,12 @@ securities, no consent needed.
    necessary), premium leagues, and later a licensed-partner route for real-money markets where legal.
 
 ## Demo video (≤ 3 min) — shot list
+
+(Updated) Open on the hook: "Can you predict virality better than an AI?" — show the Humans vs AI
+scoreboard, then a Hype Sprint with CloutBot's on-chain pick and reasoning, tap "Take the other side",
+Face ID, "⚡ Confirmed in ~600ms". Then: live pace panel, creator-hosted badge, persona switch, settlement
+and "you beat the AI" on the leaderboard. Original shot list below for the remaining beats.
+
 
 1. 0:00 Hook: phone screen, "Will this video hit 30M views by tomorrow?" Tap **Create account with Face ID**.
 2. 0:15 One prompt → points appear. Point at "no wallet, no seed phrase, no gas".
@@ -59,6 +69,12 @@ securities, no consent needed.
 ## Launch posts
 
 **X (post on submission morning, 30–45s screen recording attached; link in first reply):**
+> Can you predict what goes viral better than an AI?
+> I built an onchain game where you duel an AI on YouTube view counts.
+> It stakes first and shows its reasoning. You take the other side with Face ID — final in under a second on @monad.
+> Humans are currently [X]–[Y] vs the bot 👇
+
+Alternate:
 > I built a way to bet on whether a YouTube video goes viral.
 > Face ID to sign in. Your call is final in ~0.4s on @monad. Then you dare a friend to take the other side.
 > No wallet. No seed phrase. No gas.
@@ -81,5 +97,5 @@ securities, no consent needed.
 - [ ] Web deployed on its final Vercel domain; drip wallet funded
 - [ ] Markets seeded from live YouTube data; resolver (or CRE) running
 - [ ] Demo video ≤ 3 min and pitch video uploaded (public)
-- [ ] Bounty answers: Mera UX, Mera One Passkey Many Keys, Chainlink CRE, Envio
+- [ ] Bounty answers: Mera UX, Mera One Passkey Many Keys, Chainlink CRE, Envio, Kimi (credits)
 - [ ] Deadline: **13 Oct 2026, 11:59 PM ET**

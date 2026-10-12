@@ -19,6 +19,14 @@ Built for the Monad **Metropolis** hackathon · **Track 03 — Social, Attention
   of the same passkey — nothing stored, revealable from any device.
 - **Trust-minimized settlement.** A Chainlink CRE workflow fetches view counts on every DON node, takes
   the median and settles markets on Monad through the KeystoneForwarder.
+- **Beat the AI.** CloutBot, a Kimi-powered rival, reads each upload's live signals, stakes points and posts
+  its pick and reasoning on-chain before calls close. Tap "take the other side" to duel it; a Humans vs AI
+  scoreboard and a "Beat the AI" leaderboard column keep score.
+- **Hype Sprints.** 30-minute markets on uploads from the last few hours, with targets projected from the
+  upload's own pace and a live panel showing views/min needed vs doing.
+- **Creator mode.** Creators verify their channel (Google sign-in, YouTube read-only), the link is attested
+  on-chain, and they host markets on their own uploads with a "Hosted by the creator" badge.
+- **Anonymous personas.** One passkey, many unlinkable caller identities (separate key branch per name).
 - **Not a security, not a creator token.** Points are non-transferable and have no cash value. Markets
   read public view counters only; nobody buys a stake in a creator, so no creator has to consent.
 
@@ -28,6 +36,10 @@ Built for the Monad **Metropolis** hackathon · **Track 03 — Social, Attention
 | --- | --- | --- |
 | CloutPoints | [`0xe2b2B8C1ba9f33a3A6A2bc42328CaEb5ee602c05`](https://testnet.monadexplorer.com/address/0xe2b2B8C1ba9f33a3A6A2bc42328CaEb5ee602c05) | Sourcify exact match |
 | CloutMarket | [`0x604044904e1cC70FC9CcD7c19d36E046367c08ee`](https://testnet.monadexplorer.com/address/0x604044904e1cC70FC9CcD7c19d36E046367c08ee) | Sourcify exact match |
+| AgentJournal | [`0x4048FeFcAc8319f33e1F0bE4B665a132131475D0`](https://testnet.monadexplorer.com/address/0x4048FeFcAc8319f33e1F0bE4B665a132131475D0) | Sourcify exact match |
+| CreatorRegistry | [`0x8803C68b7C8e356D9e3494eaF91B8E7A94dFeDEe`](https://testnet.monadexplorer.com/address/0x8803C68b7C8e356D9e3494eaF91B8E7A94dFeDEe) | Sourcify exact match |
+
+CloutBot (AI rival) account: `0xBf93B7C8B8c25c68941E9855b6F8386873baBD25`.
 
 Deploy txs: CloutPoints `0x3a5f00cef8d618efef6b4553cda9d0d9b0f8329b75720712b0c415d06ef74d9c`,
 CloutMarket `0x5fdd8dd888909788fdad147092fddef5fcbce421172f19000bed40f2ea51af4b`,
@@ -63,9 +75,10 @@ wiring `0x26562597597833352a718a0b02f4656b2bf39b732e337508e64907aa5b6f0cc8`. Sta
 | Sponsor | Where | What it does in CloutCall |
 | --- | --- | --- |
 | **Monad** | everywhere | 300ms blocks + `eth_sendRawTransactionSync` for one-round-trip calls; `monadLogs` commit states in the live feed; sub-cent gas makes sponsored onboarding viable |
-| **Mera** (Monad Foundation) | `web/lib/mera.ts`, `web/lib/session.ts`, `web/lib/sealed.ts` | Whole account layer. One prompt opens a **scoped session** (CloutCall contracts only, 1,000-point budget, 30-min TTL; re-prompts outside scope). **Second PRF namespace** derives the sealed-call key (non-wallet use). Stateless: clear storage or switch device and everything rebuilds from the passkey |
+| **Mera** (Monad Foundation) | `web/lib/mera.ts`, `web/lib/session.ts`, `web/lib/sealed.ts` | Whole account layer. One prompt opens a **scoped session** (CloutCall contracts only, 1,000-point budget, 30-min TTL; re-prompts outside scope). **Second PRF namespace** derives the sealed-call key (non-wallet use). Stateless: clear storage or switch device and everything rebuilds from the passkey. **Personas**: one passkey derives unlinkable accounts per name (`m/44'/60'/7'/0/i`). The session also signs exactly one message type (creator link) and nothing else |
 | **Chainlink CRE** | `cre/` | Cron → EVM read (finalized) → HTTP fetch on every node → median consensus → signed report → `CloutMarket.onReport` |
-| **Envio** | `indexer/` | HyperIndex derives streaks, win rate, duels and upsets at settlement; drives the leaderboard |
+| **Envio** | `indexer/` | HyperIndex derives streaks, win rate, duels, upsets and Humans-vs-AI results at settlement; drives the leaderboard |
+| **Kimi** (Moonshot AI) | `resolver/src/kimi.ts`, `resolver/src/agent.ts` | Powers CloutBot: structured JSON calls (side, calibrated confidence, predicted views, reasoning) from live view/like/comment velocity; stakes sized by confidence and journaled on-chain |
 
 ## Run it locally (5 minutes)
 
@@ -106,7 +119,9 @@ cd web && npm run smoke:session && npm run smoke:market   # against a running lo
 cp .env.example .env    # fill DEPLOYER_PRIVATE_KEY (fund it at https://faucet.monad.xyz), YOUTUBE_API_KEY
 scripts/deploy-testnet.sh                       # writes deployments/10143.json
 cd web && node scripts/sync-env.mjs 10143       # then set DRIP_PRIVATE_KEY + NEXT_PUBLIC_SITE_URL
-cd ../resolver && npm install && npm run seed-trending -- --count 6 && npm run resolve
+cd ../resolver && npm install && npm run seed-trending -- --count 6
+npm run resolve -- --sprints 4      # settle due markets and keep 4 Hype Sprints open
+npm run agent                       # CloutBot: needs KIMI_API_KEY and AGENT_PRIVATE_KEY
 ```
 
 Deploy `web/` to Vercel **on its final domain first** — passkeys are bound to the domain (rpId), so
@@ -117,6 +132,14 @@ Passkey support: Safari / iOS (iCloud Keychain), Chrome with Google Password Man
 On desktop Chrome, passkeys saved elsewhere don't expose PRF and mera reports `PRF_UNAVAILABLE`.
 
 ## Security & design notes
+
+- CloutBot can only journal a pick while calls are open and only for a side it has actually staked, so it
+  can't backfill predictions. Model output is validated and clamped before it reaches the chain.
+- Creator verification: the passkey session signs a link request (and refuses any other message), the
+  OAuth state is HMAC'd with a 10-minute expiry, only the `youtube.readonly` scope is requested, and the
+  Google token is discarded right after reading the channel id. Creators can unlink at any time.
+- Personas are unlinkable on-chain by design; like any free-to-play game, a determined user can create
+  more accounts, so points measure skill for fun, not value.
 
 - Sealed-call commitments bind `chainid`, contract, market, player, side and a 32-byte passkey-derived salt,
   so a rival can't copy or replay one. Unrevealed stakes are forfeited to winners at settlement.

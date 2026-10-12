@@ -9,7 +9,7 @@ import { chain, publicClient, RPC_URL } from "@/lib/chain";
  */
 const AMOUNT = parseEther(process.env.DRIP_AMOUNT ?? "0.2");
 const ADDRESS_COOLDOWN_MS = 10 * 60 * 1000;
-const IP_LIMIT = 5;
+const IP_LIMIT = Number(process.env.DRIP_IP_LIMIT ?? 5);
 const IP_WINDOW_MS = 60 * 60 * 1000;
 
 const byAddress = new Map<string, number>();
