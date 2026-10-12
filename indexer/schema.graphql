@@ -1,0 +1,69 @@
+"""A hype market on one YouTube video."""
+type Market {
+  id: ID!
+  videoId: String!
+  creator: String!
+  threshold: BigInt!
+  baselineViews: BigInt!
+  closeTime: BigInt!
+  resolveTime: BigInt!
+  status: String!
+  outcome: String!
+  finalViews: BigInt!
+  yesPool: BigInt!
+  noPool: BigInt!
+  sealedPool: BigInt!
+  callCount: Int!
+  duelCount: Int!
+  """Players with a position, used to score everyone at settlement."""
+  players: [String!]!
+  createdAt: Int!
+}
+
+"""One player's stake in one market."""
+type Position {
+  id: ID!
+  market: Market!
+  player: Player!
+  yes: BigInt!
+  no: BigInt!
+  sealedStake: BigInt!
+  revealed: Boolean!
+  """The player whose duel link brought this player in (empty if none)."""
+  rival: String!
+  profit: BigInt!
+  result: String!
+}
+
+"""Derived per-player stats that power the leaderboard."""
+type Player {
+  id: ID!
+  calls: Int!
+  sealedCalls: Int!
+  settled: Int!
+  wins: Int!
+  losses: Int!
+  streak: Int!
+  bestStreak: Int!
+  totalStaked: BigInt!
+  totalProfit: BigInt!
+  biggestWin: BigInt!
+  """Wins on a side the crowd priced under 30%."""
+  upsetsCalled: Int!
+  duelsWon: Int!
+  duelsLost: Int!
+  firstSeen: Int!
+}
+
+"""Every call, open or sealed, for feeds and history."""
+type Call {
+  id: ID!
+  market: Market!
+  player: Player!
+  side: String!
+  amount: BigInt!
+  sealed: Boolean!
+  rival: String!
+  timestamp: Int!
+  txHash: String!
+}

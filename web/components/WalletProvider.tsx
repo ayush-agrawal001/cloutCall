@@ -1,7 +1,16 @@
 "use client";
 
 import { isMeraError } from "@category-labs/mera";
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import type { Abi, Address } from "viem";
 import { pointsAbi } from "@/lib/abi";
 import { POINTS_ADDRESS, publicClient } from "@/lib/chain";
@@ -55,30 +64,50 @@ async function waitBlocks(from: bigint, n: bigint) {
   }
 }
 
+// Device-local, non-secret values (handle, whether a passkey was used here) read via an external store
+// so server and client render the same first frame.
+const localListeners = new Set<() => void>();
+function subscribeLocal(cb: () => void) {
+  localListeners.add(cb);
+  window.addEventListener("storage", cb);
+  return () => {
+    localListeners.delete(cb);
+    window.removeEventListener("storage", cb);
+  };
+}
+function notifyLocal() {
+  localListeners.forEach((l) => l());
+}
+function readHandle() {
+  try {
+    return localStorage.getItem(HANDLE_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
 export function WalletProvider({ children }: { children: ReactNode }) {
   const sessionRef = useRef<ScopedSession | null>(null);
   const [status, setStatus] = useState<Status>("signed-out");
   const [address, setAddress] = useState<Address>();
-  const [handle, setHandleState] = useState("");
-  const [hasPasskey, setHasPasskey] = useState(false);
+  const handle = useSyncExternalStore(subscribeLocal, readHandle, () => "");
+  const hasPasskey = useSyncExternalStore(
+    subscribeLocal,
+    () => !!loadCredential(),
+    () => false,
+  );
   const [points, setPoints] = useState(0n);
   const [session, setSession] = useState<SessionInfo>();
   const [lastTx, setLastTx] = useState<LastTx>();
   const [error, setError] = useState<string>();
 
-  useEffect(() => {
-    try {
-      setHandleState(localStorage.getItem(HANDLE_KEY) ?? "");
-    } catch {}
-    setHasPasskey(!!loadCredential());
-    return () => sessionRef.current?.end();
-  }, []);
+  useEffect(() => () => sessionRef.current?.end(), []);
 
   const setHandle = useCallback((h: string) => {
-    setHandleState(h);
     try {
       localStorage.setItem(HANDLE_KEY, h);
     } catch {}
+    notifyLocal();
   }, []);
 
   const refresh = useCallback(async () => {
@@ -152,7 +181,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         const s = new ScopedSession(mera);
         sessionRef.current = s;
         setAddress(s.address);
-        setHasPasskey(true);
+        notifyLocal();
         setSession(s.info());
         await onboard(s);
         await refresh();
@@ -235,4 +264,5 @@ export function forgetThisDevice() {
   try {
     localStorage.removeItem(HANDLE_KEY);
   } catch {}
+  notifyLocal();
 }

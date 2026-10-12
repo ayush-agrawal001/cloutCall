@@ -26,3 +26,5 @@ indexer/.envio/
 .DS_Store
 *.log
 deployments/31337.json
+indexer/generated/
+cre/cloutcall-settle/dist/

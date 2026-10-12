@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
+# Local anvil devnet over plain RPC:  ENVIO_CONFIG=config.local.yaml npx envio dev
+name: cloutcall-indexer
+description: CloutCall leaderboard, streaks, duels and market history (local devnet)
+contracts:
+  - name: CloutMarket
+    events:
+      - event: "MarketCreated(uint256 indexed marketId, address indexed creator, string videoId, uint64 threshold, uint64 baselineViews, uint64 closeTime, uint64 resolveTime)"
+      - event: "Called(uint256 indexed marketId, address indexed player, uint8 side, uint256 amount, address indexed rival)"
+      - event: "SealedCallCommitted(uint256 indexed marketId, address indexed player, bytes32 commitment, uint256 amount, address indexed rival)"
+      - event: "SealedCallRevealed(uint256 indexed marketId, address indexed player, uint8 side, uint256 amount)"
+      - event: "Resolved(uint256 indexed marketId, uint64 finalViews, uint8 outcome)"
+      - event: "Voided(uint256 indexed marketId)"
+      - event: "Claimed(uint256 indexed marketId, address indexed player, uint256 staked, uint256 payout)"
+chains:
+  - id: 31337
+    start_block: 0
+    rpc: ${ENVIO_RPC_URL:-http://127.0.0.1:8545}
+    contracts:
+      - name: CloutMarket
+        address: "${ENVIO_MARKET_ADDRESS}"

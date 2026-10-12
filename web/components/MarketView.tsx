@@ -54,10 +54,9 @@ export function useMarket(id: bigint) {
 
 export function usePosition(id: bigint, market?: Market) {
   const { address, status } = useWallet();
-  const [pos, setPos] = useState<Position>();
-  const [claimable, setClaimable] = useState(0n);
-  const load = useCallback(async () => {
-    if (!address) return setPos(undefined);
+  const [state, setState] = useState<{ owner: Address; pos: Position; claimable: bigint }>();
+  const fetchPosition = useCallback(async () => {
+    if (!address) return undefined;
     const [p, c] = await Promise.all([
       publicClient.readContract({
         address: MARKET_ADDRESS,
@@ -72,13 +71,22 @@ export function usePosition(id: bigint, market?: Market) {
         args: [id, address],
       }),
     ]);
-    setPos(p);
-    setClaimable(c);
+    return { owner: address, pos: p, claimable: c };
   }, [address, id]);
+  const load = useCallback(async () => {
+    const next = await fetchPosition();
+    if (next) setState(next);
+  }, [fetchPosition]);
   useEffect(() => {
-    load();
-  }, [load, status, market?.status, market?.yesPool, market?.noPool, market?.sealedPool]);
-  return { pos, claimable, reload: load };
+    let live = true;
+    fetchPosition().then((next) => live && next && setState(next));
+    return () => {
+      live = false;
+    };
+  }, [fetchPosition, status, market?.status, market?.yesPool, market?.noPool, market?.sealedPool]);
+  // Only show data that belongs to the currently signed-in account.
+  const mine = state && address && state.owner === address ? state : undefined;
+  return { pos: mine?.pos, claimable: mine?.claimable ?? 0n, reload: load };
 }
 
 function Stat({ label, children }: { label: string; children: ReactNode }) {

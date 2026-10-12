@@ -1,0 +1,26 @@
+{
+  "name": "cloutcall-indexer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "codegen": "envio codegen",
+    "dev": "envio dev",
+    "dev:local": "ENVIO_PG_PORT=5455 ENVIO_CONFIG=config.local.yaml envio dev",
+    "start": "envio start",
+    "typecheck": "tsc",
+    "test": "tsx --test test/*.test.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "envio": "^3.14.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  }
+}
