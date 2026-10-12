@@ -45,6 +45,8 @@ type WalletCtx = {
     pointsAtRisk?: number,
   ) => Promise<FastReceipt>;
   refresh: () => Promise<void>;
+  /** Pre-computes gas for a likely next call so the tap is a single round-trip. */
+  prefetch: (req: { address: Address; abi: Abi; functionName: string; args: readonly unknown[] }) => void;
 };
 
 const Ctx = createContext<WalletCtx | null>(null);
@@ -243,6 +245,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     [send, refresh],
   );
 
+  const prefetch = useCallback<WalletCtx["prefetch"]>((req) => sessionRef.current?.prefetch(req), []);
+
   return (
     <Ctx.Provider
       value={{
@@ -261,6 +265,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         signOut,
         write,
         refresh,
+        prefetch,
       }}
     >
       {children}

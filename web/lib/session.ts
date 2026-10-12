@@ -2,9 +2,9 @@
 
 import type { Secp256k1SigningSession } from "@category-labs/mera";
 import { toViemAccount } from "@category-labs/mera/viem";
-import { createWalletClient, http, nonceManager, type Abi, type Address } from "viem";
+import { createWalletClient, http, type Abi, type Address } from "viem";
 import { chain, MARKET_ADDRESS, POINTS_ADDRESS, RPC_URL } from "./chain";
-import { writeFast, type FastReceipt } from "./tx";
+import { FastSender, type FastReceipt } from "./tx";
 
 /**
  * A clearly scoped mera signing session.
@@ -36,19 +36,19 @@ export class ScopedSession {
   readonly budget: number;
   spent = 0;
   private readonly allowed: Set<string>;
-  private readonly wallet;
+  private readonly sender: FastSender;
   private ended = false;
 
   constructor(
     private readonly mera: Secp256k1SigningSession,
     opts: { budget?: number; ttlMs?: number } = {},
   ) {
-    const account = toViemAccount(mera, { nonceManager });
+    const account = toViemAccount(mera);
     this.address = account.address;
     this.budget = opts.budget ?? SESSION_BUDGET;
     this.expiresAt = Date.now() + (opts.ttlMs ?? SESSION_TTL_MS);
     this.allowed = new Set([MARKET_ADDRESS.toLowerCase(), POINTS_ADDRESS.toLowerCase()]);
-    this.wallet = createWalletClient({ account, chain, transport: http(RPC_URL) });
+    this.sender = new FastSender(account, createWalletClient({ account, chain, transport: http(RPC_URL) }));
   }
 
   get active() {
@@ -74,15 +74,23 @@ export class ScopedSession {
         `This call goes over your ${this.budget}-point session limit — confirm with your passkey.`,
       );
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const res = await writeFast(this.wallet, req as any);
+    const res = await this.sender.write(
+      req as { address: Address; abi: Abi; functionName: string; args: readonly unknown[] },
+    );
     this.spent += pointsAtRisk;
     return res;
+  }
+
+  /** Warm up a call that is about to happen (no signing, no state change). */
+  prefetch(req: { address: Address; abi: Abi; functionName: string; args: readonly unknown[] }) {
+    if (!this.active || !this.allowed.has(req.address.toLowerCase())) return;
+    this.sender.prefetch(req).catch(() => {});
   }
 
   end() {
     if (this.ended) return;
     this.ended = true;
+    this.sender.stop();
     this.mera.end();
   }
 }

@@ -126,6 +126,8 @@ async function main() {
   assert(after - before === 500n, `alice wins 300 + 200 = 500 (got ${after - before})`);
   assert((await points(bob.s.address)) === 800n, "bob lost 200");
   console.log("claim paid 500 ✓");
+  alice.s.end();
+  bob.s.end();
   console.log("MARKET SMOKE OK");
 }
 

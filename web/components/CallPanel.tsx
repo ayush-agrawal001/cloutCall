@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Address } from "viem";
 import { marketAbi } from "@/lib/abi";
 import { explorerTx, MARKET_ADDRESS, NETWORK_LABEL } from "@/lib/chain";
@@ -39,6 +39,29 @@ export function CallPanel({
   const [done, setDone] = useState<CallResult>();
   const [sealed, setSealed] = useState(false);
   const meta = useVideoMeta(market.videoId);
+  const { prefetch, status } = w;
+  const open = phaseOf(market) === "open";
+
+  // Learn the gas limit while the player is still choosing, so the tap is one round-trip to Monad.
+  useEffect(() => {
+    if (status !== "ready" || !open) return;
+    const zero = "0x0000000000000000000000000000000000000000" as const;
+    prefetch(
+      sealed && !hasSealed
+        ? {
+            address: MARKET_ADDRESS,
+            abi: marketAbi,
+            functionName: "commitCall",
+            args: [market.id, `0x${"11".repeat(32)}`, BigInt(Math.max(10, amount)), zero],
+          }
+        : {
+            address: MARKET_ADDRESS,
+            abi: marketAbi,
+            functionName: "call",
+            args: [market.id, side, BigInt(Math.max(10, amount)), zero],
+          },
+    );
+  }, [prefetch, status, open, sealed, hasSealed, market.id, side, amount]);
 
   if (phaseOf(market) !== "open") return null;
   if (w.status !== "ready") return <SignInPanel />;
