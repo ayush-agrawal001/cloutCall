@@ -143,11 +143,20 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const onboard = useCallback(
     async (s: ScopedSession) => {
       setStatus("funding");
-      const drip = await fetch("/api/drip", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ address: s.address }),
-      }).then((r) => r.json() as Promise<{ funded?: boolean; blockNumber?: string; error?: string }>);
+      const requestDrip = () =>
+        fetch("/api/drip", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ address: s.address }),
+        }).then(async (r) => ({
+          status: r.status,
+          ...((await r.json()) as { funded?: boolean; blockNumber?: string; error?: string }),
+        }));
+      let drip = await requestDrip();
+      if (drip.status === 503 && drip.error !== "drip not configured") {
+        await new Promise((r) => setTimeout(r, 1500));
+        drip = await requestDrip();
+      }
       if (drip.funded && drip.blockNumber) await waitBlocks(BigInt(drip.blockNumber), 3n);
       else if (drip.error && (await publicClient.getBalance({ address: s.address })) === 0n) {
         throw new Error(`Couldn't sponsor gas: ${drip.error}`);
