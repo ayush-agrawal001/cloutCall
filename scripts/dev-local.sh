@@ -16,5 +16,8 @@ cd contracts
 forge script script/Deploy.s.sol --rpc-url http://127.0.0.1:8545 --private-key $PK --broadcast >/dev/null
 MARKET=$(jq -r .market ../deployments/31337.json)
 MARKET_ADDRESS=$MARKET forge script script/SeedDemo.s.sol --rpc-url http://127.0.0.1:8545 --private-key $PK --broadcast >/dev/null
+# AI rival = anvil account #1 (public test key 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d)
+AGENT_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 forge script script/DeployExtras.s.sol \
+  --rpc-url http://127.0.0.1:8545 --private-key $PK --broadcast >/dev/null
 cat ../deployments/31337.json
 echo "Local chain ready. Demo markets seeded on $MARKET"

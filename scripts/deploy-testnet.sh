@@ -21,4 +21,9 @@ forge script script/Deploy.s.sol \
   --rpc-url "$MONAD_TESTNET_RPC_URL" \
   --private-key "$DEPLOYER_PRIVATE_KEY" \
   --broadcast --slow
+# AgentJournal + CreatorRegistry (needs AGENT_PRIVATE_KEY; verifier defaults to the deployer)
+if [ -n "${AGENT_PRIVATE_KEY:-}" ]; then
+  AGENT_ADDRESS=$(cast wallet address "$AGENT_PRIVATE_KEY") forge script script/DeployExtras.s.sol \
+    --rpc-url "$MONAD_TESTNET_RPC_URL" --private-key "$DEPLOYER_PRIVATE_KEY" --broadcast --slow
+fi
 cat ../deployments/10143.json
