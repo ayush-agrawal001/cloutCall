@@ -37,8 +37,7 @@ html {
 body {
   background:
     radial-gradient(1200px 600px at 80% -10%, rgb(131 110 249 / 0.18), transparent 60%),
-    radial-gradient(900px 500px at -10% 10%, rgb(255 77 141 / 0.08), transparent 60%),
-    var(--bg);
+    radial-gradient(900px 500px at -10% 10%, rgb(255 77 141 / 0.08), transparent 60%), var(--bg);
   color: var(--text);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }

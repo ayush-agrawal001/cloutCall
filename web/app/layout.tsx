@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Header } from "@/components/Header";
+import { WalletProvider } from "@/components/WalletProvider";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -21,12 +22,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
-        <Header />
-        <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-24 pt-6">{children}</main>
-        <footer className="mx-auto w-full max-w-5xl px-4 pb-10 text-xs text-muted">
-          Play-money points only — CloutCall points are non-transferable and have no cash value. Not affiliated
-          with YouTube or any creator. Built on Monad.
-        </footer>
+        <WalletProvider>
+          <Header />
+          <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-24 pt-6">{children}</main>
+          <footer className="mx-auto w-full max-w-5xl px-4 pb-10 text-xs text-muted">
+            Play-money points only — CloutCall points are non-transferable and have no cash value. Not affiliated with
+            YouTube or any creator. Built on Monad.
+          </footer>
+        </WalletProvider>
       </body>
     </html>
   );

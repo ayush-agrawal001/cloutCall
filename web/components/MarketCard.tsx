@@ -71,8 +71,7 @@ export function MarketCard({ market }: { market: Market }) {
             hour: "numeric",
             minute: "2-digit",
           })}
-          ?
-          {gain > 0n && <span className="text-muted"> (+{formatViews(gain)})</span>}
+          ?{gain > 0n && <span className="text-muted"> (+{formatViews(gain)})</span>}
         </p>
         <PoolBar market={market} />
       </div>

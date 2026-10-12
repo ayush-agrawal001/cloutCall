@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { NETWORK_LABEL } from "@/lib/chain";
+import { WalletButton } from "./WalletButton";
 
 export function Header() {
   return (
@@ -17,9 +18,12 @@ export function Header() {
             Leaderboard
           </Link>
         </nav>
-        <span className="ml-auto flex items-center gap-2 rounded-full border border-line px-3 py-1 text-xs text-muted">
+        <span className="ml-auto hidden items-center gap-2 rounded-full border border-line px-3 py-1 text-xs text-muted md:flex">
           <span className="live-dot" /> {NETWORK_LABEL}
         </span>
+        <div className="ml-auto md:ml-0">
+          <WalletButton />
+        </div>
       </div>
     </header>
   );

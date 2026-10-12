@@ -19,7 +19,9 @@ export function useVideoMeta(id: string | undefined) {
   useEffect(() => {
     if (!id) return;
     let live = true;
-    load(id).then((m) => live && setMeta(m)).catch(() => {});
+    load(id)
+      .then((m) => live && setMeta(m))
+      .catch(() => {});
     return () => {
       live = false;
     };
