@@ -1,0 +1,125 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #09090f;
+  --surface: #13131c;
+  --surface-2: #1b1b27;
+  --line: #2a2a3a;
+  --text: #f4f3ff;
+  --muted: #9a98b3;
+  --accent: #836ef9; /* Monad purple */
+  --accent-2: #a594ff;
+  --yes: #3ee089;
+  --no: #ff4d8d;
+  --warn: #ffc94d;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-yes: var(--yes);
+  --color-no: var(--no);
+  --color-warn: var(--warn);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgb(131 110 249 / 0.18), transparent 60%),
+    radial-gradient(900px 500px at -10% 10%, rgb(255 77 141 / 0.08), transparent 60%),
+    var(--bg);
+  color: var(--text);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  padding: 0.7rem 1.2rem;
+  font-weight: 600;
+  transition:
+    transform 120ms ease,
+    opacity 120ms ease,
+    background 120ms ease;
+}
+.btn:active {
+  transform: scale(0.97);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-accent {
+  background: var(--accent);
+  color: white;
+}
+.btn-accent:hover {
+  background: var(--accent-2);
+}
+.btn-ghost {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+}
+.btn-yes {
+  background: var(--yes);
+  color: #04140b;
+}
+.btn-no {
+  background: var(--no);
+  color: #1d0310;
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.pop {
+  animation: pop 320ms ease-out;
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--yes);
+  animation: pulse-dot 1.2s ease-in-out infinite;
+}
