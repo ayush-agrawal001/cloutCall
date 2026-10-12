@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AI_ENABLED, AI_NAME, fetchAiPick } from "@/lib/ai";
 import { fetchMarkets, Side, Status } from "@/lib/markets";
+import { PixelIcon } from "./Pixel";
 
 type Score = { aiW: number; aiL: number; crowdW: number; crowdL: number; live: number };
 
@@ -42,21 +43,35 @@ export function HumansVsAi() {
   if (!AI_ENABLED || !score) return null;
   const pct = (w: number, l: number) => (w + l ? `${Math.round((w / (w + l)) * 100)}%` : "—");
   return (
-    <div className="card grid gap-4 p-5 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
-      <div>
-        <p className="text-xs uppercase tracking-wider text-muted">🤖 {AI_NAME} · Kimi</p>
-        <p className="text-3xl font-black">
-          {score.aiW}–{score.aiL} <span className="text-base text-muted">{pct(score.aiW, score.aiL)}</span>
+    <div className="@container card">
+      <div className="grid @md:grid-cols-[1fr_auto_1fr]">
+        <div className="p-4">
+          <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-muted">
+            <PixelIcon name="bot" size={12} /> {AI_NAME} · Kimi
+          </p>
+          <p className="mt-1 text-4xl font-bold tracking-[-0.05em]">
+            {score.aiW}–{score.aiL}{" "}
+            <span className="font-mono text-sm font-medium tracking-normal text-muted">
+              {pct(score.aiW, score.aiL)}
+            </span>
+          </p>
+        </div>
+        <p className="grid place-items-center border-y border-line bg-ink px-4 py-1 font-pixel text-lg text-lime @md:border-x @md:border-y-0">
+          VS
         </p>
+        <div className="p-4 @md:text-right">
+          <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-muted @md:justify-end">
+            <PixelIcon name="user" size={12} /> The crowd
+          </p>
+          <p className="mt-1 text-4xl font-bold tracking-[-0.05em]">
+            {score.crowdW}–{score.crowdL}{" "}
+            <span className="font-mono text-sm font-medium tracking-normal text-muted">
+              {pct(score.crowdW, score.crowdL)}
+            </span>
+          </p>
+        </div>
       </div>
-      <p className="text-center text-lg font-black text-accent-2">VS</p>
-      <div className="sm:text-right">
-        <p className="text-xs uppercase tracking-wider text-muted">👥 The crowd</p>
-        <p className="text-3xl font-black">
-          {score.crowdW}–{score.crowdL} <span className="text-base text-muted">{pct(score.crowdW, score.crowdL)}</span>
-        </p>
-      </div>
-      <p className="text-sm text-muted sm:col-span-3">
+      <p className="border-t border-line p-4 text-sm text-muted">
         Can humans predict virality better than an AI? {AI_NAME} stakes points on every market and posts its reasoning
         on-chain before calls close. {score.live > 0 && `${score.live} live duels open right now.`}
       </p>

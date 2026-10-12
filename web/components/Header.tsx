@@ -1,32 +1,24 @@
 import Link from "next/link";
 import { NETWORK_LABEL } from "@/lib/chain";
+import { PixelMark } from "./Pixel";
+import { ThemeToggle } from "./ThemeToggle";
 import { WalletButton } from "./WalletButton";
 
+/** The application window's title bar. */
 export function Header() {
   return (
-    <header className="sticky top-0 z-20 border-b border-line/60 bg-bg/80 backdrop-blur">
-      <div className="mx-auto flex max-w-5xl items-center gap-4 px-4 py-3">
-        <Link href="/" className="flex items-center gap-2 text-lg font-black tracking-tight">
-          <span className="grid h-8 w-8 place-items-center rounded-xl bg-accent text-white">C</span>
-          CloutCall
-        </Link>
-        <nav className="hidden gap-4 text-sm text-muted sm:flex">
-          <Link href="/" className="hover:text-text">
-            Markets
-          </Link>
-          <Link href="/leaderboard" className="hover:text-text">
-            Leaderboard
-          </Link>
-          <Link href="/creator" className="hover:text-text">
-            Creators
-          </Link>
-        </nav>
-        <span className="ml-auto hidden items-center gap-2 rounded-full border border-line px-3 py-1 text-xs text-muted md:flex">
-          <span className="live-dot" /> {NETWORK_LABEL}
-        </span>
-        <div className="ml-auto md:ml-0">
-          <WalletButton />
-        </div>
+    <header className="y2k-panel y2k-titlebar flex min-h-16 flex-wrap items-center gap-3 px-3 py-2.5 sm:gap-4 sm:pl-4">
+      <Link href="/" className="flex items-center gap-2.5 p-1 text-text no-underline">
+        <PixelMark />
+        <span className="font-pixel text-[21px] font-bold leading-none">CLOUTCALL</span>
+      </Link>
+      <span className="y2k-hide-m flex items-center gap-2 border border-line px-2 py-1 font-mono text-[11px] tracking-[0.04em] text-muted">
+        <span className="live-dot" /> {NETWORK_LABEL.toUpperCase()}
+      </span>
+      <div className="flex-1" />
+      <ThemeToggle />
+      <div className="flex items-center border-l border-line pl-3 sm:pl-4">
+        <WalletButton />
       </div>
     </header>
   );
