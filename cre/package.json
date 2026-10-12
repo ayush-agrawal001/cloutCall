@@ -1,0 +1,20 @@
+{
+  "name": "cloutcall-cre",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "postinstall": "bun x cre-setup",
+    "typecheck": "tsc",
+    "compile": "bun x cre-compile cloutcall-settle/main.ts cloutcall-settle/dist/workflow.wasm",
+    "simulate": "cre workflow simulate cloutcall-settle --target staging-settings",
+    "test": "bun test cloutcall-settle"
+  },
+  "dependencies": {
+    "@chainlink/cre-sdk": "1.23.0",
+    "viem": "^2.57.4",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}

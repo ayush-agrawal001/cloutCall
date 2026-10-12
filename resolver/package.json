@@ -1,0 +1,20 @@
+{
+  "name": "cloutcall-resolver",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "create-market": "tsx --env-file-if-exists=../.env src/create-market.ts",
+    "seed-trending": "tsx --env-file-if-exists=../.env src/seed-trending.ts",
+    "resolve": "tsx --env-file-if-exists=../.env src/resolve.ts",
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "viem": "^2.57.4"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "schedule": "0 */1 * * * *",
+  "chainSelectorName": "monad-testnet",
+  "isTestnet": true,
+  "marketAddress": "0x0000000000000000000000000000000000000000",
+  "gasLimit": "300000",
+  "scanLimit": 100
+}

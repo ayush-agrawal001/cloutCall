@@ -1,0 +1,10 @@
+# CRE project settings. RPC URLs read ${VARS} from ../.env or the shell.
+staging-settings:
+  rpcs:
+    - chain-name: monad-testnet
+      url: ${MONAD_TESTNET_RPC_URL}
+
+production-settings:
+  rpcs:
+    - chain-name: monad-testnet
+      url: ${MONAD_TESTNET_RPC_URL}
