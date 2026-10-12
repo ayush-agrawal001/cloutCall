@@ -53,7 +53,26 @@ async function hmac(key: CryptoKey, msg: string): Promise<Hex> {
   return toHex(new Uint8Array(sig));
 }
 
-export function saltFor(key: CryptoKey, marketId: bigint, chainId = CHAIN_ID, market: Address = MARKET_ADDRESS) {
+/**
+ * Per-player salt for one market. The sealed key belongs to the passkey, not the persona, so the player
+ * address is part of the message: otherwise two personas sealing the same market would share a salt, and
+ * the first reveal (which publishes the salt) would expose the other persona's pick and link the two.
+ */
+export function saltFor(
+  key: CryptoKey,
+  marketId: bigint,
+  player: Address,
+  chainId = CHAIN_ID,
+  market: Address = MARKET_ADDRESS,
+) {
+  return hmac(key, `v2:${chainId}:${market.toLowerCase()}:${marketId}:${player.toLowerCase()}`);
+}
+
+/**
+ * The original, player-independent salt. Only used to open and reveal sealed calls committed before v2;
+ * new commitments never use it. Those older commitments keep the original privacy properties.
+ */
+export function legacySaltFor(key: CryptoKey, marketId: bigint, chainId = CHAIN_ID, market: Address = MARKET_ADDRESS) {
   return hmac(key, `${chainId}:${market.toLowerCase()}:${marketId}`);
 }
 
@@ -90,11 +109,28 @@ export function commitmentFor(
   );
 }
 
-/** Recovers which side a sealed commitment hides, using only the passkey-derived key. */
-export async function openSealedCall(key: CryptoKey, marketId: bigint, player: Address, commitment: Hex) {
-  const salt = await saltFor(key, marketId);
-  for (const side of [Side.Yes, Side.No] as const) {
-    if (commitmentFor(marketId, player, side, salt).toLowerCase() === commitment.toLowerCase()) return { side, salt };
+/**
+ * Recovers which side a sealed commitment hides, using only the passkey-derived key. Tries the current
+ * per-player salt first, then the legacy salt so calls sealed before v2 can still be revealed.
+ */
+export async function openSealedCall(
+  key: CryptoKey,
+  marketId: bigint,
+  player: Address,
+  commitment: Hex,
+  chainId = CHAIN_ID,
+  market: Address = MARKET_ADDRESS,
+) {
+  const salts = [
+    await saltFor(key, marketId, player, chainId, market),
+    await legacySaltFor(key, marketId, chainId, market),
+  ];
+  for (const salt of salts) {
+    for (const side of [Side.Yes, Side.No] as const) {
+      if (commitmentFor(marketId, player, side, salt, chainId, market).toLowerCase() === commitment.toLowerCase()) {
+        return { side, salt };
+      }
+    }
   }
   return null;
 }

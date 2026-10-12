@@ -12,13 +12,39 @@ export type OnchainMarket = {
 
 export type Action = { kind: "resolve"; id: bigint; views: bigint } | { kind: "void"; id: bigint; reason: string };
 
-/** What to do with each market that is due, given the latest view counts. */
-export function decide(markets: OnchainMarket[], views: Map<string, bigint>, nowSec: bigint): Action[] {
+/**
+ * How long after `resolveTime` a fresh view count still counts as "the count at the deadline". Past this,
+ * the keeper only knows the count *now*, which is at least the count at the deadline (views don't go down).
+ */
+export const LATE_GRACE_SEC = 5n * 60n;
+
+export const LATE_VOID_REASON = "observed too late to tell whether the target was hit by the deadline";
+
+/**
+ * What to do with each market that is due, given the latest view counts.
+ *
+ * - On time (within LATE_GRACE_SEC of resolveTime): resolve with the observed count, as before.
+ * - Late and still below target: it was below target at the deadline too, so resolve (NO).
+ * - Late and at or above target: we can't tell if it crossed before or after the deadline, so void
+ *   (everyone is refunded) instead of guessing YES.
+ * - No valid count (deleted/private video, or a count we couldn't parse): void, never treat as zero.
+ */
+export function decide(
+  markets: OnchainMarket[],
+  views: Map<string, bigint>,
+  nowSec: bigint,
+  graceSec: bigint = LATE_GRACE_SEC,
+): Action[] {
   const actions: Action[] = [];
   for (const m of markets) {
     if (m.status !== 0 || m.resolveTime > nowSec) continue;
     const v = views.get(m.videoId);
-    if (v === undefined) actions.push({ kind: "void", id: m.id, reason: "video unavailable (deleted or private)" });
+    if (v === undefined || v < 0n) {
+      actions.push({ kind: "void", id: m.id, reason: "video unavailable (deleted or private)" });
+      continue;
+    }
+    const late = nowSec - m.resolveTime > graceSec;
+    if (late && v >= m.threshold) actions.push({ kind: "void", id: m.id, reason: LATE_VOID_REASON });
     else actions.push({ kind: "resolve", id: m.id, views: v });
   }
   return actions;

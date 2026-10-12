@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: PageProps<"/m/[id]">): Promis
     const title = `Will "${m.video.title}" hit ${formatViews(m.threshold)} views?`;
     return {
       title,
-      description: `Call it on CloutCall — YES or NO, settled in under a second on Monad.`,
+      description: `Call it on CloutCall — YES or NO, confirmed on Monad in about a second.`,
       openGraph: { title, images: [`/api/og?m=${id}`] },
       twitter: { card: "summary_large_image", title, images: [`/api/og?m=${id}`] },
     };

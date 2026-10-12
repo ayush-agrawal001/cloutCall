@@ -72,8 +72,8 @@ export function HumansVsAi() {
         </div>
       </div>
       <p className="border-t border-line p-4 text-sm text-muted">
-        Can humans predict virality better than an AI? {AI_NAME} stakes points on every market and posts its reasoning
-        on-chain before calls close. {score.live > 0 && `${score.live} live duels open right now.`}
+        Can humans predict virality better than an AI? When it is running, {AI_NAME} stakes points on open markets and
+        posts its reasoning on-chain before calls close. {score.live > 0 && `${score.live} live duels open right now.`}
       </p>
     </div>
   );

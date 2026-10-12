@@ -6,7 +6,7 @@ import { marketAbi } from "@/lib/abi";
 import { explorerTx, MARKET_ADDRESS, NETWORK_LABEL } from "@/lib/chain";
 import { formatPoints, formatViews, multiple, phaseOf, Side, type Market, type SideValue } from "@/lib/markets";
 import { commitmentFor, saltFor, unlockSealedKey } from "@/lib/sealed";
-import { describeTxError } from "@/lib/tx";
+import { describeTxError, TxStatusUnknownError } from "@/lib/tx";
 import { duelPath, duelText } from "@/lib/share";
 import { useVideoMeta } from "@/lib/useVideoMeta";
 import { ShareCard } from "./ShareCard";
@@ -37,6 +37,8 @@ export function CallPanel({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string>();
   const [done, setDone] = useState<CallResult>();
+  /** A call that was sent but neither confirmed nor rejected in time. */
+  const [unknownTx, setUnknownTx] = useState<string>();
   const [sealed, setSealed] = useState(false);
   const meta = useVideoMeta(market.videoId);
   const { prefetch, status } = w;
@@ -72,12 +74,15 @@ export function CallPanel({
   async function submit() {
     setBusy(true);
     setErr(undefined);
+    // A new attempt starts from a clean slate: no earlier success or pending notice stays on screen.
+    setDone(undefined);
+    setUnknownTx(undefined);
     const rivalArg = rival ?? "0x0000000000000000000000000000000000000000";
     try {
       if (sealed && !hasSealed) {
         // Second PRF namespace of the same passkey → per-market salt; only the hash goes on-chain.
         const key = await unlockSealedKey();
-        const commitment = commitmentFor(market.id, w.address!, side, await saltFor(key, market.id));
+        const commitment = commitmentFor(market.id, w.address!, side, await saltFor(key, market.id, w.address!));
         const res = await w.write(
           `Sealed a call · ${amount} pts`,
           {
@@ -107,7 +112,8 @@ export function CallPanel({
       setDone(r);
       onCalled?.(r);
     } catch (e) {
-      setErr(describeTxError(e));
+      if (e instanceof TxStatusUnknownError) setUnknownTx(e.hash);
+      else setErr(describeTxError(e));
     } finally {
       setBusy(false);
     }
@@ -174,7 +180,11 @@ export function CallPanel({
         Win ≈ <b className="text-text">{Number.isFinite(payout) ? formatPoints(payout) : "the whole pot"}</b> pts if
         right · you have {formatPoints(w.points)}
       </p>
-      <button className="btn btn-accent w-full py-4 text-lg" disabled={busy || amount < 10 || tooMuch} onClick={submit}>
+      <button
+        className="btn btn-accent w-full py-4 text-lg"
+        disabled={busy || amount < 10 || tooMuch || !!unknownTx}
+        onClick={submit}
+      >
         {busy
           ? "Calling…"
           : tooMuch
@@ -184,13 +194,29 @@ export function CallPanel({
               : `Call ${side === Side.Yes ? "YES" : "NO"} for ${amount}`}
       </button>
       {err && <p className="rounded-xl bg-no/10 p-3 text-sm text-no">{err}</p>}
+      {unknownTx && (
+        <div className="rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm">
+          <p className="font-bold text-warn">Sent — not confirmed yet</p>
+          <p className="text-muted">
+            Your call may still land. Check it before calling again, so you don&apos;t stake twice.{" "}
+            {explorerTx(unknownTx) && (
+              <a className="underline" href={explorerTx(unknownTx)} target="_blank">
+                View transaction
+              </a>
+            )}
+          </p>
+          <button className="btn btn-ghost mt-2 px-4 py-2 text-xs" onClick={() => setUnknownTx(undefined)}>
+            I checked — let me call again
+          </button>
+        </div>
+      )}
       {done && (
         <div className="pop rounded-xl border border-yes/40 bg-yes/10 p-4 text-sm">
           <p className="text-lg font-black text-yes">
             ⚡ {done.sealed ? "Sealed" : "Confirmed"} in {done.ms}ms
           </p>
           <p className="text-muted">
-            Final on {NETWORK_LABEL}.{" "}
+            Confirmed on {NETWORK_LABEL}. The market settles after its deadline.{" "}
             {explorerTx(done.hash) && (
               <a className="underline" href={explorerTx(done.hash)} target="_blank">
                 View transaction

@@ -14,7 +14,7 @@ import { marketAbi, pointsAbi } from "../lib/abi";
 import { MARKET_ADDRESS, POINTS_ADDRESS, publicClient, RPC_URL } from "../lib/chain";
 import { Side } from "../lib/markets";
 import { deriveEvmPrivateKey } from "../lib/mera";
-import { commitmentFor, openSealedCall, saltFor, sealedKeyFromPrf } from "../lib/sealed";
+import { commitmentFor, legacySaltFor, openSealedCall, saltFor, sealedKeyFromPrf } from "../lib/sealed";
 import { ScopedSession } from "../lib/session";
 
 const BASE = process.env.SMOKE_BASE_URL ?? "http://localhost:3000";
@@ -23,6 +23,16 @@ const test = createTestClient({ chain: foundry, mode: "anvil", transport: http(R
 
 function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(`assertion failed: ${msg}`);
+}
+
+async function assertReverts(p: Promise<unknown>, what: string) {
+  try {
+    await p;
+  } catch {
+    console.log(`${what} rejected ✓`);
+    return;
+  }
+  throw new Error(`assertion failed: ${what} should revert`);
 }
 
 async function player(name: string) {
@@ -66,7 +76,7 @@ async function main() {
 
   // Alice seals YES using her sealed-calls namespace key.
   const aliceKey = await sealedKeyFromPrf(new Uint8Array(alice.sealedPrf));
-  const salt = await saltFor(aliceKey, id);
+  const salt = await saltFor(aliceKey, id, alice.s.address);
   const commitment = commitmentFor(id, alice.s.address, Side.Yes, salt);
   const onchain = await publicClient.readContract({
     address: MARKET_ADDRESS,
@@ -99,8 +109,30 @@ async function main() {
   assert(opened?.side === Side.Yes, "sealed pick recovered on a fresh device");
   console.log("cross-device open ✓");
 
+  // Alice's persona (same passkey, so the same sealed key) seals with a pre-v2 legacy salt, as an
+  // account that sealed before the per-player salt would have. It must still open and reveal.
+  const persona = await player("alice-persona");
+  const legacySalt = await legacySaltFor(aliceKey, id);
+  assert(salt !== (await saltFor(aliceKey, id, persona.s.address)), "personas derive different salts");
+  const legacyCommitment = commitmentFor(id, persona.s.address, Side.No, legacySalt);
+  await persona.s.write(
+    {
+      address: MARKET_ADDRESS,
+      abi: marketAbi,
+      functionName: "commitCall",
+      args: [id, legacyCommitment, 100n, "0x0000000000000000000000000000000000000000"],
+    },
+    100,
+  );
+
   await test.increaseTime({ seconds: 601 });
   await test.mine({ blocks: 1 });
+
+  // Invalid reveal (wrong side) is rejected on-chain.
+  await assertReverts(
+    alice.s.write({ address: MARKET_ADDRESS, abi: marketAbi, functionName: "revealCall", args: [id, Side.No, salt] }),
+    "reveal with the wrong side",
+  );
   await alice.s.write({
     address: MARKET_ADDRESS,
     abi: marketAbi,
@@ -108,6 +140,26 @@ async function main() {
     args: [id, opened.side, opened.salt],
   });
   console.log("alice revealed ✓");
+  // Duplicate reveal is rejected.
+  await assertReverts(
+    alice.s.write({
+      address: MARKET_ADDRESS,
+      abi: marketAbi,
+      functionName: "revealCall",
+      args: [id, opened.side, opened.salt],
+    }),
+    "second reveal",
+  );
+
+  const legacyOpened = await openSealedCall(freshKey, id, persona.s.address, legacyCommitment);
+  assert(legacyOpened?.side === Side.No && legacyOpened.salt === legacySalt, "legacy sealed call opens");
+  await persona.s.write({
+    address: MARKET_ADDRESS,
+    abi: marketAbi,
+    functionName: "revealCall",
+    args: [id, legacyOpened.side, legacyOpened.salt],
+  });
+  console.log("legacy-format sealed call revealed ✓");
 
   await test.increaseTime({ seconds: 300 });
   await test.mine({ blocks: 1 });
@@ -123,11 +175,13 @@ async function main() {
   const before = await points(alice.s.address);
   await alice.s.write({ address: MARKET_ADDRESS, abi: marketAbi, functionName: "claim", args: [id] });
   const after = await points(alice.s.address);
-  assert(after - before === 500n, `alice wins 300 + 200 = 500 (got ${after - before})`);
+  assert(after - before === 600n, `alice wins 300 + 200 + 100 = 600 (got ${after - before})`);
   assert((await points(bob.s.address)) === 800n, "bob lost 200");
-  console.log("claim paid 500 ✓");
+  assert((await points(persona.s.address)) === 900n, "persona lost 100");
+  console.log("claim paid 600 ✓");
   alice.s.end();
   bob.s.end();
+  persona.s.end();
   console.log("MARKET SMOKE OK");
 }
 

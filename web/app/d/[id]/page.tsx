@@ -52,7 +52,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     });
     return {
       title,
-      description: "Take the other side on CloutCall — one tap with Face ID, settled in under a second on Monad.",
+      description: "Take the other side on CloutCall — one tap with Face ID, confirmed on Monad in about a second.",
       openGraph: { title, images: [image] },
       twitter: { card: "summary_large_image", title, images: [image] },
     };

@@ -18,11 +18,16 @@ Built for the Monad **Metropolis** hackathon · **Track 03 — Social, Attention
 - **Built to be shared.** Every call produces a duel link that unfurls on X and LinkedIn as a generated
   card ("ayush says YES — take the other side"). Friends land with the opposite side preselected.
 - **Sealed calls.** Hide your pick from rivals with a commit-reveal derived from a *second* PRF namespace
-  of the same passkey — nothing stored, revealable from any device.
-- **Trust-minimized settlement.** A Chainlink CRE workflow fetches view counts on every DON node, takes
-  the median and settles markets on Monad through the KeystoneForwarder.
+  of the same passkey — nothing stored, revealable from any device. Each account (and persona) gets its
+  own per-market salt.
+- **Settlement.** On the live testnet deployment, markets are settled by an allow-listed keeper
+  (`resolver/`) reading the YouTube Data API at or after each market's deadline. A Chainlink CRE workflow
+  (`cre/`: every DON node fetches the count, median, signed report through the KeystoneForwarder) is built
+  and unit-tested, but not yet wired: the deployed contract's forwarder is unset. A call is *confirmed*
+  in about a second; the *market* settles after its deadline.
 - **Beat the AI.** CloutBot, a Kimi-powered rival, reads each upload's live signals, stakes points and posts
-  its pick and reasoning on-chain before calls close. Tap "take the other side" to duel it; a Humans vs AI
+  its pick and reasoning on-chain before calls close. It runs as a separate process (`npm run agent`), so it
+  only picks markets while it is running. Tap "take the other side" to duel it; a Humans vs AI
   scoreboard and a "Beat the AI" leaderboard column keep score.
 - **Hype Sprints.** 30-minute markets on uploads from the last few hours, with targets projected from the
   upload's own pace and a live panel showing views/min needed vs doing.
@@ -66,10 +71,10 @@ wiring `0x26562597597833352a718a0b02f4656b2bf39b732e337508e64907aa5b6f0cc8`. Sta
 
 | Path         | What it is |
 | ------------ | ---------- |
-| `contracts/` | Foundry. `CloutPoints` (soulbound play points) and `CloutMarket` (parimutuel markets, sealed calls, CRE receiver). 23 tests incl. fuzzing. |
+| `contracts/` | Foundry. `CloutPoints` (soulbound play points) and `CloutMarket` (parimutuel markets, sealed calls, CRE receiver). 30 tests incl. fuzzing. |
 | `web/`       | Next.js 16 app: Mera passkey wallet, markets, duels, OG cards, leaderboard. Node smoke tests for the wallet and full market flow. |
 | `resolver/`  | YouTube Data API keeper: open markets from a URL or the trending chart, settle due markets. |
-| `cre/`       | Chainlink CRE workflow (TypeScript → WASM) settling markets via signed reports. Unit-tested with the CRE SDK test runtime. |
+| `cre/`       | Chainlink CRE workflow (TypeScript → WASM) that settles markets via signed reports. Unit-tested with the CRE SDK test runtime; not yet wired on the live testnet deployment. |
 | `indexer/`   | Envio HyperIndex: per-player wins, streaks, duels won, upsets; market history. |
 
 ## Sponsor tech used
@@ -77,8 +82,8 @@ wiring `0x26562597597833352a718a0b02f4656b2bf39b732e337508e64907aa5b6f0cc8`. Sta
 | Sponsor | Where | What it does in CloutCall |
 | --- | --- | --- |
 | **Monad** | everywhere | 300ms blocks + `eth_sendRawTransactionSync` for one-round-trip calls; `monadLogs` commit states in the live feed; sub-cent gas makes sponsored onboarding viable |
-| **Mera** (Monad Foundation) | `web/lib/mera.ts`, `web/lib/session.ts`, `web/lib/sealed.ts` | Whole account layer. One prompt opens a **scoped session** (CloutCall contracts only, 1,000-point budget, 30-min TTL; re-prompts outside scope). **Second PRF namespace** derives the sealed-call key (non-wallet use). Stateless: clear storage or switch device and everything rebuilds from the passkey. **Personas**: one passkey derives unlinkable accounts per name (`m/44'/60'/7'/0/i`). The session also signs exactly one message type (creator link) and nothing else |
-| **Chainlink CRE** | `cre/` | Cron → EVM read (finalized) → HTTP fetch on every node → median consensus → signed report → `CloutMarket.onReport` |
+| **Mera** (Monad Foundation) | `web/lib/mera.ts`, `web/lib/session.ts`, `web/lib/sealed.ts` | Whole account layer. One prompt opens a **scoped session** (CloutCall contracts only, 1,000-point budget, 30-min TTL; re-prompts outside scope), with the scope enforced by CloutCall's own client code in `web/lib/session.ts`. **Second PRF namespace** derives the sealed-call key (non-wallet use). Stateless: clear storage or switch device and everything rebuilds from the passkey. **Personas**: one passkey derives unlinkable accounts per name (`m/44'/60'/7'/0/i`). The session also signs exactly one message type (creator link) and nothing else |
+| **Chainlink CRE** | `cre/` | Cron → EVM read (finalized) → HTTP fetch on every node → median consensus → signed report → `CloutMarket.onReport`. Built and unit-tested; live testnet settlement currently uses the allow-listed keeper |
 | **Envio** | `indexer/` | HyperIndex derives streaks, win rate, duels, upsets and Humans-vs-AI results at settlement; drives the leaderboard |
 | **Kimi** (Moonshot AI) | `resolver/src/kimi.ts`, `resolver/src/agent.ts` | Powers CloutBot: structured JSON calls (side, calibrated confidence, predicted views, reasoning) from live view/like/comment velocity; stakes sized by confidence and journaled on-chain |
 
@@ -108,7 +113,7 @@ echo "NEXT_PUBLIC_ENVIO_URL=http://localhost:8080/v1/graphql" >> ../web/.env.loc
 Tests:
 
 ```bash
-cd contracts && forge test                 # 23 tests (unit + fuzz)
+cd contracts && forge test                 # 30 tests (unit + fuzz)
 cd resolver && npm test                    # keeper logic + YouTube parsing
 cd indexer && npm test                     # settlement scoring
 cd cre && bun test                         # CRE workflow with EVM/HTTP mocks
@@ -141,15 +146,26 @@ On desktop Chrome, passkeys saved elsewhere don't expose PRF and mera reports `P
   OAuth state is HMAC'd with a 10-minute expiry, only the `youtube.readonly` scope is requested, and the
   Google token is discarded right after reading the channel id. Creators can unlink at any time.
 - Personas are unlinkable on-chain by design; like any free-to-play game, a determined user can create
-  more accounts, so points measure skill for fun, not value.
+  more accounts, so points measure skill for fun, not value. Sealed-call salts include the account address,
+  so one persona's reveal can't open or link another persona's sealed call. Sealed calls committed before
+  this change used a salt shared by all personas of a passkey; they can still be revealed, but don't get
+  this protection retroactively.
 
 - Sealed-call commitments bind `chainid`, contract, market, player, side and a 32-byte passkey-derived salt,
   so a rival can't copy or replay one. Unrevealed stakes are forfeited to winners at settlement.
 - `onReport` only accepts the configured KeystoneForwarder and, optionally, a pinned workflow id.
-- The scoped session refuses value transfers and any contract other than CloutCall's two, enforces a
-  points budget and expiry, and zeroes the key on sign-out (`session.end()`).
+- The scoped session refuses value transfers and any contract other than CloutCall's contracts, enforces a
+  points budget and expiry, and zeroes the key on sign-out (`session.end()`). These limits are enforced by
+  the app's client code, not by the key or by Mera itself.
+- If a send times out or the connection drops, the app looks the signed transaction up by hash before
+  reporting anything. If it still can't tell, it says the call is unconfirmed and asks the player to check
+  it rather than letting them stake again blindly.
+- Late settlement: if the keeper observes a market more than 5 minutes after its deadline, a count still
+  below target settles NO (views only go up), but a count at or above target voids the market (refunds)
+  because it can't show the target was hit by the deadline.
 - `/api/drip` only funds addresses with no gas and is rate-limited per address and IP.
-- Known limitations (hackathon scope): the resolver is an allow-listed key until the CRE forwarder is set;
+- Known limitations (hackathon scope): live settlement is the allow-listed keeper key, since the CRE forwarder
+  is not set on the deployed contract; the keeper must be running for markets to settle;
   view counts are YouTube's public (slightly delayed) counters; the drip's rate limit is per instance.
 
 ## AI tooling disclosure

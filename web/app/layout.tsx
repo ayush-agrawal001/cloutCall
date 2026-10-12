@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
   title: { default: "CloutCall — call the creator", template: "%s · CloutCall" },
   description:
-    "Don't buy the creator, call the creator. Predict whether a YouTube video goes viral, settle in under a second on Monad, and duel your friends.",
+    "Don't buy the creator, call the creator. Predict whether a YouTube video will hit a view target, get your call confirmed on Monad in about a second, and duel your friends. Markets settle after their deadline.",
   openGraph: { siteName: "CloutCall", type: "website" },
   twitter: { card: "summary_large_image" },
 };
