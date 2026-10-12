@@ -15,6 +15,7 @@ export type Row = {
   bestStreak?: number;
   duelsWon?: number;
   upsets?: number;
+  beatAi?: number;
 };
 
 /** On-chain fallback: every player's current points straight from the contracts. */
@@ -37,6 +38,7 @@ type EnvioPlayer = {
   bestStreak: number;
   duelsWon: number;
   upsetsCalled: number;
+  beatAi: number;
 };
 
 /** Derived stats (win rate, streaks, duels, upsets) from the Envio HyperIndex indexer. */
@@ -46,7 +48,7 @@ async function envioStats(): Promise<Map<string, EnvioPlayer>> {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      query: "{ Player(limit: 500) { id calls settled wins streak bestStreak duelsWon upsetsCalled } }",
+      query: "{ Player(limit: 500) { id calls settled wins streak bestStreak duelsWon upsetsCalled beatAi } }",
     }),
   });
   const json = (await res.json()) as { data?: { Player: EnvioPlayer[] } };
@@ -75,6 +77,7 @@ export function Leaderboard() {
                       bestStreak: s.bestStreak,
                       duelsWon: s.duelsWon,
                       upsets: s.upsetsCalled,
+                      beatAi: s.beatAi,
                     }
                   : r;
               })
@@ -104,6 +107,7 @@ export function Leaderboard() {
               {rich && <th className="hidden px-4 py-3 text-right sm:table-cell">Win rate</th>}
               {rich && <th className="hidden px-4 py-3 text-right sm:table-cell">Best streak</th>}
               {rich && <th className="hidden px-4 py-3 text-right md:table-cell">Duels won</th>}
+              {rich && <th className="hidden px-4 py-3 text-right md:table-cell">Beat the AI</th>}
             </tr>
           </thead>
           <tbody>
@@ -129,6 +133,9 @@ export function Leaderboard() {
                   )}
                   {rich && <td className="hidden px-4 py-3 text-right sm:table-cell">{r.bestStreak ?? 0}🔥</td>}
                   {rich && <td className="hidden px-4 py-3 text-right md:table-cell">{r.duelsWon ?? 0}</td>}
+                  {rich && (
+                    <td className="hidden px-4 py-3 text-right md:table-cell">{r.beatAi ? `🤖 ${r.beatAi}` : 0}</td>
+                  )}
                 </tr>
               );
             })}

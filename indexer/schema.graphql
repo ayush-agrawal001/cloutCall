@@ -17,6 +17,8 @@ type Market {
   duelCount: Int!
   """Players with a position, used to score everyone at settlement."""
   players: [String!]!
+  """The AI rival that called this market, if any."""
+  aiAgent: String!
   createdAt: Int!
 }
 
@@ -52,6 +54,8 @@ type Player {
   upsetsCalled: Int!
   duelsWon: Int!
   duelsLost: Int!
+  """Settled markets where this player took the opposite side of the AI rival and won."""
+  beatAi: Int!
   firstSeen: Int!
 }
 
@@ -66,4 +70,36 @@ type Call {
   rival: String!
   timestamp: Int!
   txHash: String!
+}
+
+"""The AI rival's on-chain call and how it turned out."""
+type AgentPick {
+  id: ID!
+  market: Market!
+  agent: String!
+  side: String!
+  confidence: Int!
+  predictedViews: BigInt!
+  model: String!
+  reasoning: String!
+  """open | correct | wrong"""
+  result: String!
+  timestamp: Int!
+}
+
+"""Running Humans-vs-AI score across all settled markets."""
+type HumansVsAi {
+  id: ID!
+  aiWins: Int!
+  aiLosses: Int!
+  humansBeatAi: Int!
+  humansLostToAi: Int!
+}
+
+type Creator {
+  id: ID!
+  channelId: String!
+  channelTitle: String!
+  verifiedAt: Int!
+  active: Boolean!
 }

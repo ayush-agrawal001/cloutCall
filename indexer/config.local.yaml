@@ -12,6 +12,13 @@ contracts:
       - event: "Resolved(uint256 indexed marketId, uint64 finalViews, uint8 outcome)"
       - event: "Voided(uint256 indexed marketId)"
       - event: "Claimed(uint256 indexed marketId, address indexed player, uint256 staked, uint256 payout)"
+  - name: AgentJournal
+    events:
+      - event: "AgentPick(uint256 indexed marketId, address indexed agent, uint8 side, uint16 confidenceBps, uint64 predictedViews, string model, string reasoning)"
+  - name: CreatorRegistry
+    events:
+      - event: "CreatorVerified(address indexed creator, string channelId, string channelTitle)"
+      - event: "CreatorUnlinked(address indexed creator, string channelId)"
 chains:
   - id: 31337
     start_block: 0
@@ -19,3 +26,7 @@ chains:
     contracts:
       - name: CloutMarket
         address: "${ENVIO_MARKET_ADDRESS}"
+      - name: AgentJournal
+        address: "${ENVIO_JOURNAL_ADDRESS}"
+      - name: CreatorRegistry
+        address: "${ENVIO_REGISTRY_ADDRESS}"

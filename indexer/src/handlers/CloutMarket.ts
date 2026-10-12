@@ -19,6 +19,7 @@ function newPlayer(id: string, ts: number): Player {
     upsetsCalled: 0,
     duelsWon: 0,
     duelsLost: 0,
+    beatAi: 0,
     firstSeen: ts,
   };
 }
@@ -57,6 +58,7 @@ indexer.onEvent({ contract: "CloutMarket", event: "MarketCreated" }, async ({ ev
     callCount: 0,
     duelCount: 0,
     players: [],
+    aiAgent: "",
     createdAt: event.block.timestamp,
   });
 });
@@ -202,6 +204,43 @@ indexer.onEvent({ contract: "CloutMarket", event: "Resolved" }, async ({ event, 
     });
   }
 
+  // Humans vs AI: score the AI's journaled pick and every human who took the other side.
+  if (market.aiAgent) {
+    const pick = await context.AgentPick.get(`${p.marketId}-${market.aiAgent}`);
+    if (pick) {
+      const aiRight = pick.side === outcome;
+      context.AgentPick.set({ ...pick, result: aiRight ? "correct" : "wrong" });
+      const score = (await context.HumansVsAi.get("global")) ?? {
+        id: "global",
+        aiWins: 0,
+        aiLosses: 0,
+        humansBeatAi: 0,
+        humansLostToAi: 0,
+      };
+      let beat = 0;
+      let lost = 0;
+      for (const addr of market.players) {
+        if (addr === market.aiAgent) continue;
+        const pos = await context.Position.getOrThrow(positionId(p.marketId, addr));
+        const humanSide = pos.yes > pos.no ? "YES" : pos.no > pos.yes ? "NO" : "";
+        if (!humanSide || humanSide === pick.side) continue;
+        const r = results.get(addr);
+        if (r === "win") {
+          beat++;
+          const pl = await context.Player.getOrThrow(addr);
+          context.Player.set({ ...pl, beatAi: pl.beatAi + 1 });
+        } else if (r === "loss") lost++;
+      }
+      context.HumansVsAi.set({
+        ...score,
+        aiWins: score.aiWins + (aiRight ? 1 : 0),
+        aiLosses: score.aiLosses + (aiRight ? 0 : 1),
+        humansBeatAi: score.humansBeatAi + beat,
+        humansLostToAi: score.humansLostToAi + lost,
+      });
+    }
+  }
+
   // Duels: a player who came in through someone's link vs. that someone.
   for (const addr of market.players) {
     const pos = await context.Position.getOrThrow(positionId(p.marketId, addr));
@@ -225,4 +264,39 @@ indexer.onEvent({ contract: "CloutMarket", event: "Voided" }, async ({ event, co
 
 indexer.onEvent({ contract: "CloutMarket", event: "Claimed" }, async () => {
   // Payouts are already scored at settlement; claims only move points (read balances on-chain).
+});
+
+indexer.onEvent({ contract: "AgentJournal", event: "AgentPick" }, async ({ event, context }) => {
+  const p = event.params;
+  const agent = p.agent.toLowerCase();
+  context.AgentPick.set({
+    id: `${p.marketId}-${agent}`,
+    market_id: p.marketId.toString(),
+    agent,
+    side: sideName(p.side),
+    confidence: Number(p.confidenceBps) / 100,
+    predictedViews: p.predictedViews,
+    model: p.model,
+    reasoning: p.reasoning,
+    result: "open",
+    timestamp: event.block.timestamp,
+  });
+  const market = await context.Market.get(p.marketId.toString());
+  if (market) context.Market.set({ ...market, aiAgent: agent });
+});
+
+indexer.onEvent({ contract: "CreatorRegistry", event: "CreatorVerified" }, async ({ event, context }) => {
+  const p = event.params;
+  context.Creator.set({
+    id: p.creator.toLowerCase(),
+    channelId: p.channelId,
+    channelTitle: p.channelTitle,
+    verifiedAt: event.block.timestamp,
+    active: true,
+  });
+});
+
+indexer.onEvent({ contract: "CreatorRegistry", event: "CreatorUnlinked" }, async ({ event, context }) => {
+  const c = await context.Creator.get(event.params.creator.toLowerCase());
+  if (c && c.channelId === event.params.channelId) context.Creator.set({ ...c, active: false });
 });
