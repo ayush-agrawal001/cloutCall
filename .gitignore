@@ -25,3 +25,4 @@ indexer/.envio/
 # misc
 .DS_Store
 *.log
+deployments/31337.json

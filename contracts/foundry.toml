@@ -6,6 +6,8 @@ solc_version = "0.8.30"
 evm_version = "prague"
 optimizer = true
 optimizer_runs = 200
+# Deploy script writes addresses to ../deployments/<chainId>.json for the web app, resolver and indexer.
+fs_permissions = [{ access = "read-write", path = "../deployments" }]
 
 [rpc_endpoints]
 monad_testnet = "${MONAD_TESTNET_RPC_URL}"
