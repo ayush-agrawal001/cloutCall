@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { formatPoints, shortAddress } from "@/lib/markets";
+import { PhoneHandoff, usePlatformAuthenticator } from "./PhoneHandoff";
 import { PixelAvatar, PixelIcon } from "./Pixel";
 import { useWallet } from "./WalletProvider";
 
@@ -10,6 +11,7 @@ export function SignInPanel({ compact = false }: { compact?: boolean }) {
   const w = useWallet();
   const [handle, setHandle] = useState(w.handle);
   const busy = w.status === "connecting" || w.status === "funding";
+  const hasBiometrics = usePlatformAuthenticator();
 
   return (
     <div className={compact ? "space-y-3" : "card space-y-4 p-5"}>
@@ -38,17 +40,27 @@ export function SignInPanel({ compact = false }: { compact?: boolean }) {
               ? w.status === "funding"
                 ? "Setting you up…"
                 : "Waiting for passkey…"
-              : "Create account with Face ID"}
+              : hasBiometrics === false
+                ? "Create account with passkey"
+                : "Create account with Face ID"}
           </button>
         )}
         <button className="btn btn-ghost" disabled={busy} onClick={() => w.signIn()}>
           {w.hasPasskey ? "Other passkey" : "I have a passkey"}
         </button>
       </div>
+      {w.status === "connecting" && (
+        <p className="text-xs text-muted">
+          Some devices ask twice — once to create your passkey and once to unlock it.
+        </p>
+      )}
       {w.error && (
         <p className="border border-no bg-no/10 p-3 text-sm text-no" onClick={w.clearError}>
           {w.error}
         </p>
+      )}
+      {(hasBiometrics === false || w.error) && w.status !== "ready" && (
+        <PhoneHandoff reason={w.error ? "failed" : "no-biometrics"} />
       )}
     </div>
   );

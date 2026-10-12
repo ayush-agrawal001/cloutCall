@@ -28,6 +28,8 @@ import { wordlist } from "@scure/bip39/wordlists/english.js";
 const CREDENTIAL_KEY = "cloutcall.credential.v1";
 
 export const WALLET_PATH = "m/44'/60'/0'/0/0";
+/** Give up on a stuck passkey prompt (e.g. a phone hand-off that never connects) instead of hanging. */
+export const PASSKEY_TIMEOUT_MS = 120_000;
 /** Personas live on their own BIP-44 account branch, one index per persona name. */
 export const PERSONA_BRANCH = "m/44'/60'/7'/0";
 
@@ -83,6 +85,7 @@ export async function createAccount(handle: string) {
   const res = await createPasskeyWithPrfOutput({
     rp: { id: rpId(), name: "CloutCall" },
     user: { name: handle, displayName: handle },
+    timeout: PASSKEY_TIMEOUT_MS,
   });
   saveCredential(res);
   return { session: sessionFromPrf(new Uint8Array(res.prfOutput)), credentialId: res.credentialId };
@@ -102,7 +105,7 @@ export async function personaPath(name: string) {
 export async function signIn(persona?: string) {
   const credential = loadCredential();
   const path = persona ? await personaPath(persona) : WALLET_PATH;
-  const res = await getPasskeyPrfOutput({ rpId: rpId(), credential });
+  const res = await getPasskeyPrfOutput({ rpId: rpId(), credential, timeout: PASSKEY_TIMEOUT_MS });
   saveCredential({ credentialId: res.credentialId, transports: credential?.transports });
   return { session: sessionFromPrf(new Uint8Array(res.prfOutput), path), credentialId: res.credentialId };
 }
@@ -114,7 +117,12 @@ export async function sha256(bytes: Uint8Array) {
 /** Evaluate the passkey PRF under a dedicated namespace salt. */
 export async function prfForNamespace(namespace: string) {
   const prfSalt = await sha256(new TextEncoder().encode(namespace));
-  const res = await getPasskeyPrfOutput({ rpId: rpId(), credential: loadCredential(), prfSalt });
+  const res = await getPasskeyPrfOutput({
+    rpId: rpId(),
+    credential: loadCredential(),
+    prfSalt,
+    timeout: PASSKEY_TIMEOUT_MS,
+  });
   return new Uint8Array(res.prfOutput);
 }
 
@@ -122,9 +130,9 @@ export function describeMeraError(e: unknown): string {
   if (isMeraError(e)) {
     switch (e.code) {
       case "PRF_UNAVAILABLE":
-        return "This passkey provider doesn't support PRF. Use iCloud Keychain (Safari/iOS), Google Password Manager (Chrome/Android) or 1Password.";
+        return "This passkey provider can't derive keys (no PRF support). Use your phone (iPhone iOS 18+ or Android with Google Password Manager), Safari with iCloud Keychain, Chrome with Google Password Manager, or 1Password.";
       case "PASSKEY_OPERATION_FAILED":
-        return "Passkey prompt was cancelled or failed. Try again.";
+        return "The passkey prompt was cancelled, timed out or couldn't reach your phone. Try again — or continue on your phone with the code below.";
       case "CRYPTO_UNAVAILABLE":
         return "Passkeys need a secure (https) page.";
       case "SESSION_ENDED":
