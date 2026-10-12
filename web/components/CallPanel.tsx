@@ -10,7 +10,7 @@ import { describeTxError, TxStatusUnknownError } from "@/lib/tx";
 import { duelPath, duelText } from "@/lib/share";
 import { useVideoMeta } from "@/lib/useVideoMeta";
 import { ShareCard } from "./ShareCard";
-import { SignInPanel } from "./WalletButton";
+import { SetupNotice, SignInPanel } from "./WalletButton";
 import { useWallet } from "./WalletProvider";
 
 const PRESETS = [25, 50, 100, 250];
@@ -122,6 +122,7 @@ export function CallPanel({
   return (
     <div className="card space-y-4 p-5">
       <p className="font-bold">Make your call</p>
+      <SetupNotice />
       <div className="grid grid-cols-2 gap-2">
         <button
           className={`btn ${side === Side.Yes ? "btn-yes" : "btn-ghost"} py-4 text-lg`}

@@ -16,6 +16,7 @@ import type { Abi, Address } from "viem";
 import { pointsAbi } from "@/lib/abi";
 import { POINTS_ADDRESS, publicClient } from "@/lib/chain";
 import { createAccount, describeMeraError, forgetCredential, loadCredential, signIn as meraSignIn } from "@/lib/mera";
+import { runOnboarding, SetupError, type DripResult } from "@/lib/onboarding";
 import { lockSealedKey } from "@/lib/sealed";
 import { ScopedSession, SessionScopeError, type SessionInfo } from "@/lib/session";
 import type { FastReceipt } from "@/lib/tx";
@@ -36,6 +37,14 @@ type WalletCtx = {
   lastTx?: LastTx;
   error?: string;
   clearError: () => void;
+  /**
+   * Set when the passkey session opened but account setup (sponsored gas, starter points) didn't finish.
+   * The player is signed in but can't play until `finishSetup` succeeds.
+   */
+  setupError?: string;
+  settingUp: boolean;
+  /** Re-runs setup inside the current session (no new passkey prompt). Never claims twice. */
+  finishSetup: () => Promise<void>;
   create: (handle: string) => Promise<void>;
   signIn: () => Promise<void>;
   signOut: () => void;
@@ -73,6 +82,13 @@ async function waitBlocks(from: bigint, n: bigint) {
     if ((await publicClient.getBlockNumber({ cacheTime: 0 })) >= from + n) return;
     await new Promise((r) => setTimeout(r, 150));
   }
+}
+
+/** The player-facing reason account setup stopped. */
+function setupMessage(e: unknown) {
+  if (e instanceof SetupError) return e.message;
+  if (e instanceof SessionScopeError) return "Your session expired. Sign in again to finish setting up.";
+  return `Account setup failed: ${describeTxError(e)}`;
 }
 
 // Device-local, non-secret values (handle, whether a passkey was used here) read via an external store
@@ -128,6 +144,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<SessionInfo>();
   const [lastTx, setLastTx] = useState<LastTx>();
   const [error, setError] = useState<string>();
+  const [setupError, setSetupError] = useState<string>();
+  const [settingUp, setSettingUp] = useState(false);
+  const setupRunning = useRef(false);
 
   useEffect(() => () => sessionRef.current?.end(), []);
 
@@ -169,48 +188,47 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   /** Fund gas if needed, then grant starter points — all without extra prompts. */
   const onboard = useCallback(
-    async (s: ScopedSession) => {
-      setStatus("funding");
-      const requestDrip = () =>
-        fetch("/api/drip", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ address: s.address }),
-        }).then(async (r) => ({
-          status: r.status,
-          ...((await r.json()) as { funded?: boolean; blockNumber?: string; error?: string }),
-        }));
-      let drip = await requestDrip();
-      if (drip.status === 503 && drip.error !== "drip not configured") {
-        await new Promise((r) => setTimeout(r, 1500));
-        drip = await requestDrip();
-      }
-      if (drip.funded && drip.blockNumber) await waitBlocks(BigInt(drip.blockNumber), 3n);
-      else if (drip.error && (await publicClient.getBalance({ address: s.address })) === 0n) {
-        throw new Error(`Couldn't sponsor gas: ${drip.error}`);
-      }
-
-      const claimed = await publicClient.readContract({
-        address: POINTS_ADDRESS,
-        abi: pointsAbi,
-        functionName: "claimedStarter",
-        args: [s.address],
-      });
-      if (!claimed) {
-        await send("Claimed 1,000 starter points", {
-          address: POINTS_ADDRESS,
-          abi: pointsAbi,
-          functionName: "claimStarter",
-          args: [],
-        });
-      }
-    },
+    (s: ScopedSession) =>
+      runOnboarding({
+        requestDrip: async (): Promise<DripResult> => {
+          try {
+            const r = await fetch("/api/drip", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ address: s.address }),
+            });
+            // A crashed route (e.g. an empty sponsor wallet) answers with a non-JSON 500.
+            const body = (await r.json().catch(() => ({ error: `HTTP ${r.status}` }))) as Omit<DripResult, "status">;
+            return { status: r.status, ...body };
+          } catch {
+            return { status: 0, error: "network error" };
+          }
+        },
+        getBalance: () => publicClient.getBalance({ address: s.address }),
+        waitForDrip: (block) => waitBlocks(block, 3n),
+        hasClaimedStarter: () =>
+          publicClient.readContract({
+            address: POINTS_ADDRESS,
+            abi: pointsAbi,
+            functionName: "claimedStarter",
+            args: [s.address],
+          }),
+        claimStarter: async () => {
+          await send("Claimed 1,000 starter points", {
+            address: POINTS_ADDRESS,
+            abi: pointsAbi,
+            functionName: "claimStarter",
+            args: [],
+          });
+        },
+      }),
     [send],
   );
 
   const start = useCallback(
     async (open: () => Promise<{ session: import("@category-labs/mera").Secp256k1SigningSession }>) => {
       setError(undefined);
+      setSetupError(undefined);
       setStatus("connecting");
       try {
         const { session: mera } = await open();
@@ -220,7 +238,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         setAddress(s.address);
         notifyLocal();
         setSession(s.info());
-        await onboard(s);
+        setStatus("funding");
+        // The account exists from here on: a setup failure leaves the player signed in, with a visible
+        // reason and a retry, instead of silently showing zero points.
+        await onboard(s).catch((e) => setSetupError(setupMessage(e)));
         await refresh();
         setStatus("ready");
       } catch (e) {
@@ -261,6 +282,28 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     [personas, start],
   );
 
+  const finishSetup = useCallback(async () => {
+    const s = sessionRef.current;
+    if (!s || setupRunning.current) return; // one run at a time; a double tap can't double-send
+    setupRunning.current = true;
+    setSettingUp(true);
+    setSetupError(undefined);
+    let failure: string | undefined;
+    try {
+      if (!s.active) throw new SessionScopeError("expired", "session expired");
+      await onboard(s);
+    } catch (e) {
+      failure = setupMessage(e);
+    } finally {
+      setupRunning.current = false;
+      setSettingUp(false);
+    }
+    // Ignore the outcome if the player signed out or switched persona meanwhile.
+    if (sessionRef.current !== s) return;
+    setSetupError(failure);
+    await refresh().catch(() => {});
+  }, [onboard, refresh]);
+
   const signOut = useCallback(() => {
     sessionRef.current?.end();
     lockSealedKey();
@@ -268,6 +311,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setAddress(undefined);
     setSession(undefined);
     setPoints(0n);
+    setSetupError(undefined);
     setStatus("signed-out");
   }, []);
 
@@ -316,6 +360,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         lastTx,
         error,
         clearError: () => setError(undefined),
+        setupError,
+        settingUp,
+        finishSetup,
         create,
         signIn,
         signOut,
