@@ -2,6 +2,7 @@
 
 import { explorerAddress, explorerTx, NETWORK_LABEL } from "@/lib/chain";
 import { formatPoints } from "@/lib/markets";
+import { KeysPanel } from "./KeysPanel";
 import { SignInPanel } from "./WalletButton";
 import { forgetThisDevice, useWallet } from "./WalletProvider";
 
@@ -45,6 +46,8 @@ export function AccountPanel() {
           </p>
         </div>
       )}
+
+      <KeysPanel />
 
       {w.lastTx && (
         <div className="card p-6 text-sm">

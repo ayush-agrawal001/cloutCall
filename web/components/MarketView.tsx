@@ -20,6 +20,7 @@ import { describeTxError } from "@/lib/tx";
 import { ActivityFeed } from "./ActivityFeed";
 import { CallPanel, type CallResult } from "./CallPanel";
 import { PhaseBadge, PoolBar } from "./MarketCard";
+import { RevealPanel } from "./RevealPanel";
 import { useWallet } from "./WalletProvider";
 
 type Position = {
@@ -223,10 +224,19 @@ export function MarketView({
           market={market}
           rival={rival}
           suggestedSide={suggestedSide}
+          hasSealed={!!pos && pos.commitment !== `0x${"0".repeat(64)}`}
           onCalled={(r) => {
             reload();
             reloadPos();
             onCalled?.(r, market);
+          }}
+        />
+        <RevealPanel
+          market={market}
+          pos={pos}
+          onRevealed={() => {
+            reload();
+            reloadPos();
           }}
         />
         {children?.(market, pos)}

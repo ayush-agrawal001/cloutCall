@@ -6,6 +6,7 @@ import type { Abi, Address } from "viem";
 import { pointsAbi } from "@/lib/abi";
 import { POINTS_ADDRESS, publicClient } from "@/lib/chain";
 import { createAccount, describeMeraError, forgetCredential, loadCredential, signIn as meraSignIn } from "@/lib/mera";
+import { lockSealedKey } from "@/lib/sealed";
 import { ScopedSession, SessionScopeError, type SessionInfo } from "@/lib/session";
 import type { FastReceipt } from "@/lib/tx";
 import { describeTxError } from "@/lib/tx";
@@ -176,6 +177,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(() => {
     sessionRef.current?.end();
+    lockSealedKey();
     sessionRef.current = null;
     setAddress(undefined);
     setSession(undefined);
