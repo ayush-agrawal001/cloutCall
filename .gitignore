@@ -1,0 +1,27 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# node
+node_modules/
+.next/
+out/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+.vercel
+
+# foundry
+contracts/out/
+contracts/cache/
+contracts/broadcast/*/31337/
+contracts/broadcast/**/dry-run/
+
+# envio
+indexer/generated/
+indexer/.envio/
+
+# misc
+.DS_Store
+*.log
