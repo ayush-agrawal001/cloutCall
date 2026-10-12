@@ -22,6 +22,17 @@ Built for the Monad **Metropolis** hackathon · **Track 03 — Social, Attention
 - **Not a security, not a creator token.** Points are non-transferable and have no cash value. Markets
   read public view counters only; nobody buys a stake in a creator, so no creator has to consent.
 
+## Live on Monad testnet (chain 10143)
+
+| Contract | Address | Source |
+| --- | --- | --- |
+| CloutPoints | [`0xe2b2B8C1ba9f33a3A6A2bc42328CaEb5ee602c05`](https://testnet.monadexplorer.com/address/0xe2b2B8C1ba9f33a3A6A2bc42328CaEb5ee602c05) | Sourcify exact match |
+| CloutMarket | [`0x604044904e1cC70FC9CcD7c19d36E046367c08ee`](https://testnet.monadexplorer.com/address/0x604044904e1cC70FC9CcD7c19d36E046367c08ee) | Sourcify exact match |
+
+Deploy txs: CloutPoints `0x3a5f00cef8d618efef6b4553cda9d0d9b0f8329b75720712b0c415d06ef74d9c`,
+CloutMarket `0x5fdd8dd888909788fdad147092fddef5fcbce421172f19000bed40f2ea51af4b`,
+wiring `0x26562597597833352a718a0b02f4656b2bf39b732e337508e64907aa5b6f0cc8`. Start block 70364840.
+
 ## How it works
 
 ```

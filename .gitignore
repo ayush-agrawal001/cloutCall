@@ -28,3 +28,5 @@ indexer/.envio/
 deployments/31337.json
 indexer/generated/
 cre/cloutcall-settle/dist/
+contracts/broadcast/**/run-[0-9]*.json
+contracts/broadcast/**/*.lock
