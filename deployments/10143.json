@@ -1,0 +1,8 @@
+{
+  "chainId": 10143,
+  "forwarder": "0x0000000000000000000000000000000000000000",
+  "market": "0x604044904e1cC70FC9CcD7c19d36E046367c08ee",
+  "points": "0xe2b2B8C1ba9f33a3A6A2bc42328CaEb5ee602c05",
+  "resolver": "0x4c58dB686ACCeF2a7FF7DE799c0Ed766f0b6Ad86",
+  "startBlock": 70364840
+}
