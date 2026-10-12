@@ -9,7 +9,9 @@
     "lint": "eslint",
     "format": "prettier --write app components lib scripts",
     "smoke:session": "tsx --env-file=.env.local tests/session.smoke.ts",
-    "smoke:market": "tsx --env-file=.env.local tests/market.smoke.ts"
+    "smoke:market": "tsx --env-file=.env.local tests/market.smoke.ts",
+    "smoke:creator": "tsx --env-file=.env.local tests/creator.smoke.ts",
+    "test:creator": "tsx --env-file=.env.local --test tests/creator.test.ts"
   },
   "dependencies": {
     "@category-labs/mera": "^0.2.0",

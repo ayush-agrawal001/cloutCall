@@ -51,6 +51,8 @@ type WalletCtx = {
     pointsAtRisk?: number,
   ) => Promise<FastReceipt>;
   refresh: () => Promise<void>;
+  /** Signs a creator-link message inside the session (the only kind of message it will sign). */
+  signLinkMessage: (message: string) => Promise<`0x${string}`>;
   /** Pre-computes gas for a likely next call so the tap is a single round-trip. */
   prefetch: (req: { address: Address; abi: Abi; functionName: string; args: readonly unknown[] }) => void;
 };
@@ -289,6 +291,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     [send, refresh],
   );
 
+  const signLinkMessage = useCallback(async (message: string) => {
+    const s = sessionRef.current;
+    if (!s) throw new Error("Sign in first");
+    return s.signLinkMessage(message);
+  }, []);
+
   const prefetch = useCallback<WalletCtx["prefetch"]>((req) => sessionRef.current?.prefetch(req), []);
 
   return (
@@ -314,6 +322,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         write,
         refresh,
         prefetch,
+        signLinkMessage,
       }}
     >
       {children}

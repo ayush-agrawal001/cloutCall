@@ -17,6 +17,12 @@ createServer((req, res) => {
     }));
     return res.end(JSON.stringify({ items }));
   }
+  if (url.pathname === "/youtube/v3/channels") {
+    return res.end(JSON.stringify({ items: [{ id: "UCmockchannel0000000000", contentDetails: { relatedPlaylists: { uploads: "UUmockuploads" } } }] }));
+  }
+  if (url.pathname === "/youtube/v3/playlistItems") {
+    return res.end(JSON.stringify({ items: ["aqz-KE-bpKQ", "jNQXAC9IVRw"].map((videoId) => ({ contentDetails: { videoId } })) }));
+  }
   if (url.pathname === "/v1/chat/completions") {
     return res.end(
       JSON.stringify({

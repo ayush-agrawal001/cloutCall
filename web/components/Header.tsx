@@ -17,6 +17,9 @@ export function Header() {
           <Link href="/leaderboard" className="hover:text-text">
             Leaderboard
           </Link>
+          <Link href="/creator" className="hover:text-text">
+            Creators
+          </Link>
         </nav>
         <span className="ml-auto hidden items-center gap-2 rounded-full border border-line px-3 py-1 text-xs text-muted md:flex">
           <span className="live-dot" /> {NETWORK_LABEL}

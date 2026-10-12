@@ -24,6 +24,7 @@ import { RevealPanel } from "./RevealPanel";
 import { AiRivalCard } from "./AiRivalCard";
 import { PacePanel } from "./PacePanel";
 import { useAiPick } from "@/lib/ai";
+import { useCreatorBadge } from "@/lib/useCreatorBadge";
 import { AGENT_ADDRESS } from "@/lib/chain";
 import { ShareCard } from "./ShareCard";
 import { duelPath, winText } from "@/lib/share";
@@ -127,6 +128,7 @@ export function MarketView({
   const [claimErr, setClaimErr] = useState<string>();
   const [won, setWon] = useState<bigint>();
   const aiPick = useAiPick(id);
+  const creatorHosted = useCreatorBadge(market?.creator, market?.videoId);
   const [duelAi, setDuelAi] = useState(false);
 
   useEffect(() => {
@@ -200,7 +202,14 @@ export function MarketView({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h1 className="text-xl font-black leading-tight">{meta?.title ?? "Loading…"}</h1>
-                <p className="text-sm text-muted">{meta?.author}</p>
+                <p className="text-sm text-muted">
+                  {meta?.author}
+                  {creatorHosted && (
+                    <span className="ml-2 rounded-full bg-yes/15 px-2 py-0.5 text-xs font-semibold text-yes">
+                      ✓ Hosted by the creator
+                    </span>
+                  )}
+                </p>
               </div>
               <PhaseBadge market={market} />
             </div>
