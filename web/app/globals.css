@@ -209,6 +209,35 @@ body::before {
   }
 }
 
+/* Public pages (landing, sign-in): stacked panels floating on the rainbow, no sidebar. */
+.site-stage {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 1280px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: 10px;
+}
+.site-bar {
+  position: sticky;
+  top: 10px;
+  z-index: 30;
+  background: var(--head);
+  box-shadow: 4px 4px 0 #242424;
+}
+@media (max-width: 760px) {
+  .site-stage {
+    padding: 6px;
+    gap: 6px;
+  }
+  .site-bar {
+    top: 6px;
+  }
+}
+
 .y2k-nav {
   transition: background 0.1s;
 }

@@ -30,7 +30,7 @@ import {
 import { PixelIcon, PixelMark } from "./Pixel";
 import { useWallet } from "./WalletProvider";
 
-type TourCtx = { openTour: () => void };
+type TourCtx = { openTour: () => void; allowAutoOpen: (on: boolean) => void };
 const Ctx = createContext<TourCtx | null>(null);
 
 /**
@@ -40,16 +40,17 @@ const Ctx = createContext<TourCtx | null>(null);
 export function TourProvider({ children }: { children: ReactNode }) {
   const w = useWallet();
   const [open, setOpen] = useState(false);
+  /** Set while a page that wants the tour is mounted (see `TourAutoOpen`). */
+  const [autoOpen, setAutoOpen] = useState(false);
   /** Accounts the tour already opened for in this page visit, in case storage can't remember it. */
   const shownFor = useRef(new Set<string>());
   const ready = setupComplete(w);
   const account = ready ? w.address : undefined;
-
   useEffect(() => {
-    if (!account || shownFor.current.has(account) || hasSeenTour(CHAIN_ID, account)) return;
+    if (!account || !autoOpen || shownFor.current.has(account) || hasSeenTour(CHAIN_ID, account)) return;
     shownFor.current.add(account);
     setOpen(true);
-  }, [account]);
+  }, [account, autoOpen]);
 
   const close = useCallback(
     (outcome: TourOutcome) => {
@@ -60,13 +61,27 @@ export function TourProvider({ children }: { children: ReactNode }) {
     [account],
   );
 
-  const value = useMemo(() => ({ openTour: () => setOpen(true) }), []);
+  const value = useMemo(() => ({ openTour: () => setOpen(true), allowAutoOpen: setAutoOpen }), []);
   return (
     <Ctx.Provider value={value}>
       {children}
       {open && <ArcadeTour onClose={close} />}
     </Ctx.Provider>
   );
+}
+
+/**
+ * Lets the tour open on its own while mounted. Only the game's layout mounts it: the landing and sign-in pages
+ * explain the game themselves, so a new player meets the tour once they reach the app.
+ */
+export function TourAutoOpen() {
+  const allow = useContext(Ctx)?.allowAutoOpen;
+  useEffect(() => {
+    if (!allow) return;
+    allow(true);
+    return () => allow(false);
+  }, [allow]);
+  return null;
 }
 
 /** Replays the tour; sits in the title bar. */
@@ -227,7 +242,7 @@ function ArcadeTour({ onClose }: { onClose: (outcome: TourOutcome) => void }) {
   function finish(outcome: TourOutcome) {
     onClose(outcome);
     if (outcome !== "completed") return;
-    if (pathname !== "/") return router.push("/#markets");
+    if (pathname !== "/markets") return router.push("/markets#markets");
     // After the dialog has closed and the page can scroll again.
     requestAnimationFrame(() =>
       document.getElementById("markets")?.scrollIntoView({ behavior: reduced ? "auto" : "smooth" }),

@@ -8,10 +8,10 @@ import { PixelIcon, type PixelIconName } from "./Pixel";
 
 const NAV: { href: string; label: string; icon: PixelIconName; match: (p: string) => boolean }[] = [
   {
-    href: "/",
+    href: "/markets",
     label: "Markets",
     icon: "markets",
-    match: (p) => p === "/" || p.startsWith("/m/") || p.startsWith("/d/"),
+    match: (p) => p === "/markets" || p.startsWith("/m/") || p.startsWith("/d/"),
   },
   { href: "/leaderboard", label: "Leaderboard", icon: "podium", match: (p) => p.startsWith("/leaderboard") },
   { href: "/creator", label: "Creators", icon: "creator", match: (p) => p.startsWith("/creator") },
