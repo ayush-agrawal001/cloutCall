@@ -92,7 +92,7 @@ export function CreatorPanel() {
       if (!j.url) throw new Error(j.error ?? "couldn't start verification");
       window.location.href = j.url;
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
+      setErr(describeTxError(e));
       setBusy(undefined);
     }
   }

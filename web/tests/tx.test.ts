@@ -323,3 +323,23 @@ test("an empty gas tank is explained, not reported as invalid parameters", async
   assert.match(describeTxError(new Error("insufficient funds for gas * price + value")), /Not enough MON/);
   assert.doesNotMatch(describeTxError(new Error("user rejected")), /MON/);
 });
+
+test("node errors name the real cause instead of viem's generic summary", async () => {
+  const { describeTxError } = await import("../lib/tx");
+  const { InvalidInputRpcError, LimitExceededRpcError } = await import("viem");
+  const node = (details: string) => new InvalidInputRpcError(Object.assign(new Error(details), { details }));
+  assert.match(describeTxError(node("nonce too low")), /previous transaction/);
+  assert.match(describeTxError(new LimitExceededRpcError(new Error("requests limited to 15/sec"))), /busy/);
+  assert.match(describeTxError(node("transaction underpriced")), /Gas prices/);
+  // Anything unrecognised still shows the node's own words, not just "Missing or invalid parameters".
+  assert.match(describeTxError(node("something odd happened")), /something odd happened/);
+});
+
+test("points errors raised inside a market call are named", async () => {
+  const { describeTxError } = await import("../lib/tx");
+  const { BaseError, toFunctionSelector } = await import("viem");
+  const revert = new BaseError("Execution reverted", {
+    cause: Object.assign(new Error("execution reverted"), { data: toFunctionSelector("InsufficientPoints()") }),
+  });
+  assert.match(describeTxError(revert), /enough points/);
+});
