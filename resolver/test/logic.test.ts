@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { decide, LATE_GRACE_SEC, LATE_VOID_REASON, parseDuration, suggestThreshold } from "../src/logic";
+import { decide, LATE_GRACE_SEC, LATE_VOID_REASON, parseDuration, staggeredWindow, suggestThreshold } from "../src/logic";
 import { getStats, parseVideoId, toStats } from "../src/youtube";
 
 test("parseVideoId handles ids and common URL shapes", () => {
@@ -139,4 +139,16 @@ test("sprintThreshold projects the upload's pace over the window", async () => {
   // readable rounding at the scale of the gain
   assert.equal(sprintThreshold(1_234_567n, 10, 0.5), 1_284_000n);
   assert.ok(sprintThreshold(50n, 0.1, 0.5) > 50n);
+});
+
+test("staggeredWindow cycles sprint lengths so a batch settles at different times", () => {
+  const mins = [20, 30, 40, 50, 60];
+  const ends = [0, 1, 2, 3, 4].map((i) => staggeredWindow(i, mins).resolveIn);
+  assert.deepEqual(ends, [1200, 1800, 2400, 3000, 3600]);
+  assert.equal(staggeredWindow(5, mins).resolveIn, 1200, "wraps around");
+  const w = staggeredWindow(0, mins);
+  assert.equal(w.resolveIn - w.closeIn, 300, "calls close 5 minutes before settling");
+  // Contract limits: ≥5 min of calls and ≥2 min between closing and settling.
+  const tiny = staggeredWindow(0, [6]);
+  assert.ok(tiny.closeIn >= 300 && tiny.resolveIn - tiny.closeIn >= 120);
 });

@@ -8,8 +8,8 @@ export const STARTER_POINTS = 1_000;
 export const REFILL_POINTS = 250;
 export const REFILL_BELOW = 50;
 
-/** Hype Sprints the keeper opens (resolver/src/resolve.ts `--sprints`). */
-export const SPRINT_MINUTES = 30;
+/** Hype Sprint lengths the keeper cycles through (resolver/src/resolve.ts `--durations`), so they settle at different times. */
+export const SPRINT_MINUTES = { min: 20, max: 60 };
 
 /**
  * What a winning stake pays back, mirroring `_payout` in contracts/src/CloutMarket.sol: your stake back plus

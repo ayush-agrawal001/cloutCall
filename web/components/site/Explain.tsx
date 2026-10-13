@@ -87,7 +87,7 @@ export const MODES: Fact[] = [
   {
     icon: "bolt",
     title: "Hype Sprints",
-    body: `${SPRINT_MINUTES}-minute markets on fresh uploads, with a live views-per-minute pace panel.`,
+    body: `${SPRINT_MINUTES.min}–${SPRINT_MINUTES.max} minute markets on fresh uploads, staggered so one is always closing soon, with a live views-per-minute pace panel.`,
   },
   {
     icon: "duel",

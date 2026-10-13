@@ -76,6 +76,16 @@ export function parseDuration(s: string): number {
  * window at the upload's average pace so far, discounted for decay. Rounded to a readable number at the
  * scale of the expected gain, so it lands near a coin flip rather than a sure thing.
  */
+/**
+ * Timing for the n-th sprint the keeper opens: lengths cycle through `minutes` so markets opened in the same
+ * pass settle at different times (and are replaced at different times), keeping calls open somewhere.
+ * Calls close `closeBeforeSec` before settling; the contract needs ≥2 min to reveal and ≥5 min of calls.
+ */
+export function staggeredWindow(n: number, minutes: number[], closeBeforeSec = 300) {
+  const resolveIn = minutes[((n % minutes.length) + minutes.length) % minutes.length] * 60;
+  return { closeIn: Math.max(300, resolveIn - closeBeforeSec), resolveIn: Math.max(resolveIn, 300 + 120) };
+}
+
 export function sprintThreshold(views: bigint, hoursSincePublish: number, windowHours: number, decay = 0.8): bigint {
   const pacePerHour = Number(views) / Math.max(0.25, hoursSincePublish);
   const gain = Math.max(100, pacePerHour * windowHours * decay);
