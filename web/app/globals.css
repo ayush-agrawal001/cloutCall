@@ -248,6 +248,49 @@ body::before {
   background: var(--head);
   box-shadow: 4px 4px 0 #242424;
 }
+/* Landing page's animated background (components/site/SiteBackdrop.tsx), under the scanlines and panels.
+   ::before is the still image: it shows until the canvases have faded in, and is the whole background without JS. */
+.site-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: #ff00e5;
+}
+.site-backdrop::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("/y2k/bg-rainbow.webp") center / cover;
+}
+.site-backdrop[data-ready]::before {
+  visibility: hidden;
+  transition: visibility 0s 0.6s;
+}
+.site-backdrop canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.6s;
+}
+.site-backdrop[data-ready] canvas {
+  opacity: 1;
+}
+.site-backdrop-blocks {
+  display: none;
+}
+/* Dark: the same rainbow dimmed to a night glow (the canvas bakes in the same dim), with falling blocks on top. */
+html[data-theme="dark"] .site-backdrop {
+  background: #0a080e;
+}
+html[data-theme="dark"] .site-backdrop::before {
+  filter: brightness(0.35) saturate(1.6);
+}
+html[data-theme="dark"] .site-backdrop-blocks {
+  display: block;
+}
 @media (max-width: 760px) {
   .site-stage {
     padding: 6px;
