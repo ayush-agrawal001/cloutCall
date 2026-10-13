@@ -58,17 +58,28 @@ export function buildMessages(c: MarketContext) {
 /** Validates and clamps the model's JSON so nothing malformed reaches the chain. */
 export function parseAiCall(raw: string, c: MarketContext): AiCall {
   const json = JSON.parse(raw.replace(/^```(?:json)?|```$/g, "").trim()) as Partial<AiCall>;
-  const side = String(json.side).toUpperCase() === "NO" ? "NO" : String(json.side).toUpperCase() === "YES" ? "YES" : null;
+  const side =
+    String(json.side).toUpperCase() === "NO" ? "NO" : String(json.side).toUpperCase() === "YES" ? "YES" : null;
   if (!side) throw new Error(`model returned no side: ${raw.slice(0, 200)}`);
   const confidence = Math.min(95, Math.max(50, Math.round(Number(json.confidence) || 50)));
   const predictedViews = Math.max(c.views, Math.round(Number(json.predictedViews) || c.views));
-  const reasoning = String(json.reasoning ?? "").replace(/\s+/g, " ").trim().slice(0, 240) || "No reasoning given.";
+  const reasoning =
+    String(json.reasoning ?? "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 240) || "No reasoning given.";
   return { side, confidence, predictedViews, reasoning };
 }
 
 /** Bigger stake when more confident: 50 points at a coin flip up to 300 at 95%. */
 export function stakeFor(confidence: number) {
   return Math.round(50 + ((confidence - 50) / 45) * 250);
+}
+
+/** CloutBot never bets more than a fifth of what it holds, so one bad run can't empty it. 0 = sit this one out. */
+export function stakeWithin(confidence: number, balance: number, share = 0.2, min = 10) {
+  const stake = Math.min(stakeFor(confidence), Math.floor(balance * share));
+  return stake >= min ? stake : 0;
 }
 
 export async function askKimi(c: MarketContext, apiKey: string, fetchImpl = fetch): Promise<AiCall> {

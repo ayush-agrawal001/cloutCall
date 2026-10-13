@@ -12,7 +12,7 @@ import { formatEther, parseEther, type Address } from "viem";
 import { journalAbi, marketAbi, pointsAbi } from "./abi";
 import { load, requireYoutubeKey } from "./config";
 import { askFunnel, funnelSteps } from "./funnel";
-import { stakeFor, type MarketContext } from "./kimi";
+import { stakeWithin, type MarketContext } from "./kimi";
 import { readAllMarkets } from "./markets";
 import { getStats } from "./youtube";
 
@@ -74,13 +74,42 @@ async function ensurePoints(need: number) {
 
 /** Model answers not yet on-chain, so a failed send (e.g. an RPC rate limit) never asks the model twice. */
 const answers = new Map<bigint, Awaited<ReturnType<typeof askFunnel>>>();
+/** Settled markets already checked for winnings, so each is collected once. */
+const collected = new Set<bigint>();
+let brokeLogged = false;
+
+/** Claims winnings and refunds from settled markets, so CloutBot's points come back to play again. */
+async function collect(settled: bigint[]) {
+  if (!agent) return;
+  for (const id of settled) {
+    if (collected.has(id)) continue;
+    const owed = (await cfg.publicClient.readContract({
+      address: cfg.market,
+      abi: marketAbi,
+      functionName: "claimable",
+      args: [id, agent],
+    })) as bigint;
+    if (owed > 0n) {
+      await send("claim", cfg.market, marketAbi, [id]);
+      console.log(`collected ${owed} pts from #${id}`);
+    }
+    collected.add(id);
+  }
+}
+
 /** When recent picks were made, for the hourly cap. */
 const pickTimes: number[] = [];
 let lowGasLogged = false;
 
 async function tick() {
   const now = (await cfg.publicClient.getBlock()).timestamp;
-  const open = (await readAllMarkets(cfg.publicClient, cfg.market)).filter(
+  const all = await readAllMarkets(cfg.publicClient, cfg.market);
+  if (!values["dry-run"]) {
+    await collect(all.filter((m) => m.status !== 0).map((m) => m.id)).catch((e) =>
+      console.error("collecting failed:", e instanceof Error ? e.message : e),
+    );
+  }
+  const open = all.filter(
     (m) => m.status === 0 && Number(m.resolveTime - now) > 0 && Number((m.closeTime ?? 0n) - now) > 90,
   );
   const todo = [];
@@ -109,6 +138,14 @@ async function tick() {
     }
     lowGasLogged = false;
   }
+  // Out of points: don't spend model requests on picks it can't stake. Winnings and the daily refill bring it back.
+  let points = values["dry-run"] ? 1_000 : Number((await ensurePoints(50)) ?? 0n);
+  if (points < 10) {
+    if (!brokeLogged) console.log(`out of points (${points}); waiting for winnings or the daily refill`);
+    brokeLogged = true;
+    return;
+  }
+  brokeLogged = false;
   // Soonest-closing first, so the picks that matter most aren't the ones skipped by the cap.
   todo.sort((a, b) => Number((a.closeTime ?? 0n) - (b.closeTime ?? 0n)));
   for (const m of todo) {
@@ -137,17 +174,15 @@ async function tick() {
       }
     }
     const side = call.side === "YES" ? 1 : 2;
-    let stake = stakeFor(call.confidence);
+    const stake = stakeWithin(call.confidence, points);
     console.log(
       `#${m.id} "${s.title.slice(0, 50)}" → ${call.side} ${call.confidence}% (${stake} pts) via ${call.model}: ${call.reasoning}`,
     );
     if (values["dry-run"]) continue;
 
-    const balance = (await ensurePoints(stake)) ?? 0n;
-    stake = Math.min(stake, Number(balance));
-    if (stake < 10) {
-      console.log("  skipped: agent is out of points");
-      continue;
+    if (stake === 0) {
+      console.log("  skipped: too few points left for this one");
+      break;
     }
     await send("call", cfg.market, marketAbi, [
       m.id,
@@ -164,6 +199,7 @@ async function tick() {
       call.reasoning,
     ]);
     pickTimes.push(Date.now());
+    points -= stake;
     answers.delete(m.id);
     console.log(`  staked + journaled (${hash})`);
   }
