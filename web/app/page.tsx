@@ -95,19 +95,19 @@ export default function Landing() {
               className="chroma mt-5 text-[clamp(46px,7vw,98px)] font-bold uppercase leading-[0.86] tracking-[-0.065em]"
             >
               <span className="block">
-                Don&apos;t buy
+                Predict
                 <span className="glitch ml-[0.12em] inline-block h-[0.68em] w-[1.5em] border-2 border-[currentColor] align-[0]">
                   <img src="/y2k/art-mosaic.png" alt="" className="pixelated block h-full w-full object-cover" />
                 </span>
               </span>
-              <span className="block pl-[0.5em] text-[var(--ink-2)]">the creator.</span>
+              <span className="block pl-[0.5em] text-[var(--ink-2)]">which videos</span>
               <span className="block">
                 <span className="glitch mr-[0.1em] inline-block h-[0.68em] w-[0.7em] border-2 border-[currentColor] align-[0]">
                   <img src="/y2k/art-sphere.png" alt="" className="pixelated block h-full w-full object-cover" />
                 </span>
-                Call
+                go viral
               </span>
-              <span className="block text-[var(--ink-2)]">the creator.</span>
+              <span className="block text-[var(--ink-2)]">on YouTube.</span>
             </h1>
             <p className="mt-6 max-w-[46ch] text-[17px] leading-relaxed">
               Will that new upload hit its view target before the clock runs out? Call <b>YES</b> or <b>NO</b> with free
