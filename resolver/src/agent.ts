@@ -1,6 +1,6 @@
 /**
  * CloutBot — the AI rival. For every open market it hasn't called yet, it reads the video's live
- * signals, asks Kimi for a calibrated prediction, stakes points on that side and writes its pick and
+ * signals, asks the model funnel (OpenRouter → Gemini → Kimi, see funnel.ts) for a calibrated prediction, stakes points on that side and writes its pick and
  * reasoning to AgentJournal before calls close. Humans then duel it on the same market.
  *
  *   npm run agent            # loop every 60s
@@ -8,10 +8,11 @@
  *   npm run agent -- --dry-run   # print picks, send nothing
  */
 import { parseArgs } from "node:util";
-import type { Address } from "viem";
+import { formatEther, parseEther, type Address } from "viem";
 import { journalAbi, marketAbi, pointsAbi } from "./abi";
 import { load, requireYoutubeKey } from "./config";
-import { askKimi, KIMI_MODEL, stakeFor, type MarketContext } from "./kimi";
+import { askFunnel, funnelSteps } from "./funnel";
+import { stakeFor, type MarketContext } from "./kimi";
 import { readAllMarkets } from "./markets";
 import { getStats } from "./youtube";
 
@@ -20,12 +21,17 @@ const { values } = parseArgs({
     once: { type: "boolean", default: false },
     "dry-run": { type: "boolean", default: false },
     every: { type: "string", default: "60" },
+    // Each pick is two transactions (~0.03 MON) and one model request: keep both budgets in check.
+    "max-per-hour": { type: "string", default: "8" },
+    reserve: { type: "string", default: "0.05" }, // MON kept back; no new picks below it
   },
 });
 
 const cfg = load();
 const apiKey = requireYoutubeKey(cfg.youtubeKey);
-if (!cfg.kimiKey) throw new Error("Set KIMI_API_KEY (https://platform.moonshot.ai)");
+const aiKeys = { openrouter: cfg.openrouterKey, gemini: cfg.geminiKey, kimi: cfg.kimiKey };
+if (funnelSteps(aiKeys).length === 0) throw new Error("Set OPENROUTER_API_KEY, GEMINI_API_KEY or KIMI_API_KEY");
+console.log(`CloutBot funnel: ${funnelSteps(aiKeys).map((s) => `${s.provider}:${s.model}`).join(" → ")}`);
 if (!cfg.journal) throw new Error("No journal address in deployments — run DeployExtras first");
 if (!cfg.agentWallet && !values["dry-run"]) throw new Error("Set AGENT_PRIVATE_KEY");
 const agent = cfg.agentWallet?.account?.address as Address | undefined;
@@ -62,6 +68,10 @@ async function ensurePoints(need: number) {
   return (await read("balanceOf")) as bigint;
 }
 
+/** When recent picks were made, for the hourly cap. */
+const pickTimes: number[] = [];
+let lowGasLogged = false;
+
 async function tick() {
   const now = (await cfg.publicClient.getBlock()).timestamp;
   const open = (await readAllMarkets(cfg.publicClient, cfg.market)).filter(
@@ -84,7 +94,20 @@ async function tick() {
   if (todo.length === 0) return;
 
   const stats = await getStats([...new Set(todo.map((m) => m.videoId))], apiKey);
+  if (agent && !values["dry-run"]) {
+    const mon = await cfg.publicClient.getBalance({ address: agent });
+    if (mon < parseEther(values.reserve!)) {
+      if (!lowGasLogged) console.error(`⛽ agent has ${formatEther(mon)} MON: no new picks until it's topped up`);
+      lowGasLogged = true;
+      return;
+    }
+    lowGasLogged = false;
+  }
+  // Soonest-closing first, so the picks that matter most aren't the ones skipped by the cap.
+  todo.sort((a, b) => Number((a.closeTime ?? 0n) - (b.closeTime ?? 0n)));
   for (const m of todo) {
+    while (pickTimes.length && pickTimes[0] < Date.now() - 3_600_000) pickTimes.shift();
+    if (!values["dry-run"] && pickTimes.length >= Number(values["max-per-hour"])) break;
     const s = stats.get(m.videoId);
     if (!s) continue;
     const ctx: MarketContext = {
@@ -97,10 +120,18 @@ async function tick() {
       threshold: Number(m.threshold),
       hoursToResolve: Number(m.resolveTime - now) / 3600,
     };
-    const call = await askKimi(ctx, cfg.kimiKey!);
+    let call;
+    try {
+      call = await askFunnel(ctx, aiKeys, { log: console.log });
+    } catch (e) {
+      console.error(`#${m.id} skipped: ${e instanceof Error ? e.message : e}`);
+      continue;
+    }
     const side = call.side === "YES" ? 1 : 2;
     let stake = stakeFor(call.confidence);
-    console.log(`#${m.id} "${s.title.slice(0, 50)}" → ${call.side} ${call.confidence}% (${stake} pts): ${call.reasoning}`);
+    console.log(
+      `#${m.id} "${s.title.slice(0, 50)}" → ${call.side} ${call.confidence}% (${stake} pts) via ${call.model}: ${call.reasoning}`,
+    );
     if (values["dry-run"]) continue;
 
     const balance = (await ensurePoints(stake)) ?? 0n;
@@ -115,9 +146,10 @@ async function tick() {
       side,
       call.confidence * 100,
       BigInt(call.predictedViews),
-      KIMI_MODEL,
+      call.model,
       call.reasoning,
     ]);
+    pickTimes.push(Date.now());
     console.log(`  staked + journaled (${hash})`);
   }
 }

@@ -4,7 +4,7 @@ import { HumansVsAi } from "../HumansVsAi";
 import { PixelIcon } from "../Pixel";
 import { FactList, type Fact } from "./Explain";
 
-/** Each step is backed by resolver/src/agent.ts, resolver/src/kimi.ts and contracts/src/AgentJournal.sol. */
+/** Each step is backed by resolver/src/agent.ts, resolver/src/funnel.ts and contracts/src/AgentJournal.sol. */
 const HOW: Fact[] = [
   {
     icon: "eye",
@@ -14,7 +14,7 @@ const HOW: Fact[] = [
   {
     icon: "bot",
     title: "An AI makes the call",
-    body: "Kimi, a large language model, picks YES or NO with a confidence and a view forecast, and explains why in a sentence or two.",
+    body: "A large language model picks YES or NO with a confidence and a view forecast, and explains why in a sentence or two. If one model is down or rate-limited, the next one in line answers, and the pick records which model made it.",
   },
   {
     icon: "bolt",
@@ -40,7 +40,7 @@ function DemoAiPick() {
           {AI_NAME} says
         </p>
         <span className="flex items-center gap-1.5">
-          <span className="border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-muted">kimi</span>
+          <span className="border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-muted">gemini</span>
           <span className="border border-no px-1.5 py-0.5 font-mono text-[10px] text-no">EXAMPLE</span>
         </span>
       </div>

@@ -79,7 +79,7 @@ export function HumansVsAi() {
       <div className="grid @md:grid-cols-[1fr_auto_1fr]">
         <div className="p-4">
           <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-muted">
-            <PixelIcon name="bot" size={12} /> {AI_NAME} · Kimi
+            <PixelIcon name="bot" size={12} /> {AI_NAME} · AI
           </p>
           <p className="mt-1 text-4xl font-bold tracking-[-0.05em]">
             {score.aiW}–{score.aiL}{" "}

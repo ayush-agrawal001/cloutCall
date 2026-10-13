@@ -41,6 +41,8 @@ export function load() {
     agentWallet,
     youtubeKey: process.env.YOUTUBE_API_KEY,
     kimiKey: process.env.KIMI_API_KEY,
+    openrouterKey: process.env.OPENROUTER_API_KEY,
+    geminiKey: process.env.GEMINI_API_KEY,
   };
 }
 
