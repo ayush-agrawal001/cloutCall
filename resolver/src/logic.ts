@@ -8,6 +8,8 @@ export type OnchainMarket = {
   closeTime?: bigint;
   resolveTime: bigint;
   status: number; // 0 open, 1 resolved, 2 voided
+  yesPool?: bigint;
+  noPool?: bigint;
 };
 
 export type Action = { kind: "resolve"; id: bigint; views: bigint } | { kind: "void"; id: bigint; reason: string };

@@ -1,11 +1,39 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { marketAbi } from "@/lib/abi";
 import { AI_ENABLED, AI_NAME, fetchAiPick } from "@/lib/ai";
-import { fetchMarkets, Side, Status } from "@/lib/markets";
+import { AGENT_ADDRESS, HOUSE_BOTS, MARKET_ADDRESS, publicClient } from "@/lib/chain";
+import { fetchMarkets, Side, Status, type Market } from "@/lib/markets";
 import { PixelIcon } from "./Pixel";
 
 type Score = { aiW: number; aiL: number; crowdW: number; crowdL: number; live: number };
+
+/** Accounts that aren't people: the AI itself and the house liquidity bots. */
+const NOT_PEOPLE = [...(AGENT_ADDRESS ? [AGENT_ADDRESS.toLowerCase()] : []), ...HOUSE_BOTS] as `0x${string}`[];
+/** Settled markets never change, so each one's human pools are read once. */
+const humanPools = new Map<bigint, { yes: bigint; no: bigint }>();
+
+/** The YES/NO points staked by people only, so "the crowd" never includes the AI or the bots. */
+async function peoplePools(m: Market) {
+  const cached = humanPools.get(m.id);
+  if (cached) return cached;
+  let yes = m.yesPool;
+  let no = m.noPool;
+  for (const player of NOT_PEOPLE) {
+    const p = await publicClient.readContract({
+      address: MARKET_ADDRESS,
+      abi: marketAbi,
+      functionName: "positionOf",
+      args: [m.id, player],
+    });
+    yes -= p.yes;
+    no -= p.no;
+  }
+  const out = { yes, no };
+  humanPools.set(m.id, out);
+  return out;
+}
 
 /** Scoreboard of the AI rival vs the crowd's majority call, computed from settled markets on-chain. */
 export function HumansVsAi() {
@@ -18,18 +46,22 @@ export function HumansVsAi() {
       const markets = await fetchMarkets(0, 100);
       const picks = await Promise.all(markets.map((m) => fetchAiPick(m.id).catch(() => null)));
       const s: Score = { aiW: 0, aiL: 0, crowdW: 0, crowdL: 0, live: 0 };
-      markets.forEach((m, i) => {
+      for (const [i, m] of markets.entries()) {
         const pick = picks[i];
-        if (!pick) return;
-        if (m.status === Status.Open) return void s.live++;
-        if (m.status !== Status.Resolved) return;
+        if (!pick) continue;
+        if (m.status === Status.Open) {
+          s.live++;
+          continue;
+        }
+        if (m.status !== Status.Resolved) continue;
         if (pick.side === m.outcome) s.aiW++;
         else s.aiL++;
-        if (m.yesPool === m.noPool) return;
-        const crowd = m.yesPool > m.noPool ? Side.Yes : Side.No;
+        const people = await peoplePools(m);
+        if (people.yes === people.no) continue;
+        const crowd = people.yes > people.no ? Side.Yes : Side.No;
         if (crowd === m.outcome) s.crowdW++;
         else s.crowdL++;
-      });
+      }
       if (live) setScore(s);
     };
     load().catch(() => {});

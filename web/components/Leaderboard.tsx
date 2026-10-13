@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { marketAbi } from "@/lib/abi";
-import { AGENT_ADDRESS, ENVIO_URL, explorerAddress, MARKET_ADDRESS, publicClient } from "@/lib/chain";
+import { AGENT_ADDRESS, ENVIO_URL, explorerAddress, houseBotNumber, MARKET_ADDRESS, publicClient } from "@/lib/chain";
 import { formatPoints, shortAddress } from "@/lib/markets";
 import { useWallet } from "./WalletProvider";
 
@@ -26,7 +26,8 @@ async function onchainRows(): Promise<Row[]> {
     functionName: "getPlayers",
     args: [0n, 500n],
   });
-  return players.map((address, i) => ({ address, points: balances[i] }));
+  // House liquidity bots play to keep both sides funded; they aren't ranked against people.
+  return players.map((address, i) => ({ address, points: balances[i] })).filter((r) => !houseBotNumber(r.address));
 }
 
 type EnvioPlayer = {
@@ -145,7 +146,8 @@ export function Leaderboard() {
       <p className="text-xs text-muted">
         Available points (not counting stakes in open markets or uncollected winnings) read live from CloutCall
         contracts on Monad
-        {rich ? " · win rate, streaks and duels indexed by Envio HyperIndex" : ""}.
+        {rich ? " · win rate, streaks and duels indexed by Envio HyperIndex" : ""}. House liquidity bots aren&apos;t
+        ranked.
       </p>
     </div>
   );

@@ -1,10 +1,10 @@
 "use client";
 
 import QRCode from "qrcode";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 /**
- * Whether this device has its own fingerprint / Face ID / Windows Hello. When it doesn't (e.g. most Linux
+ * Whether this device has its own fingerprint, face unlock or Windows Hello. When it doesn't (e.g. most Linux
  * desktops), the browser falls back to "scan a QR with your phone", which relies on a Bluetooth hand-off
  * between the two devices that some desktop browsers can't complete.
  */
@@ -22,6 +22,29 @@ export function usePlatformAuthenticator() {
     };
   }, []);
   return available;
+}
+
+/**
+ * What this device calls its passkey unlock, for button labels. Face ID only exists on iPhone and iPad; Android
+ * offers passkeys through the fingerprint (its camera face unlock usually isn't allowed) or the screen lock.
+ * `null` before hydration or when we can't tell.
+ */
+export function unlockName(ua: string, platform = "", touchPoints = 0): string | null {
+  const iPadOS = /Macintosh/.test(ua) && touchPoints > 1;
+  if (/iPhone|iPad|iPod/.test(ua) || iPadOS) return "Face ID or Touch ID";
+  if (/Android/.test(ua)) return "fingerprint";
+  if (/Mac/.test(platform) || /Macintosh/.test(ua)) return "Touch ID";
+  if (/Win/.test(platform) || /Windows/.test(ua)) return "Windows Hello";
+  return null;
+}
+
+const noSubscribe = () => () => {};
+export function useUnlockName() {
+  return useSyncExternalStore(
+    noSubscribe,
+    () => unlockName(navigator.userAgent, navigator.platform, navigator.maxTouchPoints),
+    () => null,
+  );
 }
 
 /** QR that opens this page on the user's phone, so the passkey is created natively there — no Bluetooth needed. */
@@ -42,9 +65,9 @@ export function PhoneHandoff({ reason }: { reason: "no-biometrics" | "failed" })
       <p className="font-bold">Continue on your phone</p>
       <p className="text-muted">
         {reason === "no-biometrics"
-          ? "This computer has no fingerprint or Face ID, so it would need to borrow your phone over Bluetooth — which often fails on Linux and in Brave."
+          ? "This computer has no fingerprint reader or face unlock, so it would need to borrow your phone over Bluetooth — which often fails on Linux and in Brave."
           : "Your phone didn't finish connecting to this computer (that hand-off needs Bluetooth on both devices)."}{" "}
-        Scan this code with your phone&apos;s camera to play there with its own Face ID or fingerprint.
+        Scan this code with your phone&apos;s camera to play there with its own fingerprint or face unlock.
       </p>
       {svg ? (
         <div className="mx-auto w-40 bg-white p-2" dangerouslySetInnerHTML={{ __html: svg }} aria-label="QR code" />

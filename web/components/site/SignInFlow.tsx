@@ -8,7 +8,7 @@ import { AI_ENABLED, AI_NAME } from "@/lib/aiConfig";
 import { explorerAddress, explorerTx, NETWORK_LABEL } from "@/lib/chain";
 import { safeNext, STARTER_POINTS } from "@/lib/intro";
 import { formatPoints, shortAddress } from "@/lib/markets";
-import { PhoneHandoff, usePlatformAuthenticator } from "../PhoneHandoff";
+import { PhoneHandoff, usePlatformAuthenticator, useUnlockName } from "../PhoneHandoff";
 import { PixelAvatar, PixelIcon, type PixelIconName } from "../Pixel";
 import { SetupNotice } from "../WalletButton";
 import { useWallet } from "../WalletProvider";
@@ -337,12 +337,13 @@ function CreateStep({ headingRef, onCreate }: { headingRef: HeadingRef; onCreate
   const w = useWallet();
   const [handle, setHandle] = useState(w.handle);
   const hasBiometrics = usePlatformAuthenticator();
+  const unlock = useUnlockName();
   const busy = w.status === "connecting" || w.status === "funding";
 
   const progress = [
     {
       label: "Make your passkey",
-      detail: "Your device asks for Face ID, a fingerprint or your screen lock.",
+      detail: "Your device asks for your fingerprint, face or screen lock — whichever it supports.",
       state: w.status === "connecting" ? "now" : w.status === "funding" ? "done" : "todo",
     },
     {
@@ -359,10 +360,10 @@ function CreateStep({ headingRef, onCreate }: { headingRef: HeadingRef; onCreate
 
   return (
     <>
-      <StepTitle headingRef={headingRef}>Your face is your login</StepTitle>
+      <StepTitle headingRef={headingRef}>Log in like you unlock your phone</StepTitle>
       <Lead>
-        No wallet app, no seed phrase, nothing to buy. CloutCall uses a <b>passkey</b> — the same Face ID, fingerprint
-        or screen lock that unlocks your phone — and that passkey is your account.
+        No wallet app, no seed phrase, nothing to buy. CloutCall uses a <b>passkey</b> — the same fingerprint, face
+        unlock or screen lock that unlocks your phone — and that passkey is your account.
       </Lead>
 
       <div className="mt-7 grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
@@ -398,9 +399,9 @@ function CreateStep({ headingRef, onCreate }: { headingRef: HeadingRef; onCreate
               ? "Waiting for your passkey…"
               : w.status === "funding"
                 ? "Setting up your account…"
-                : hasBiometrics === false
-                  ? "Create account with a passkey"
-                  : "Create account with Face ID"}
+                : hasBiometrics && unlock
+                  ? `Create account with ${unlock}`
+                  : "Create account with a passkey"}
           </button>
           {w.status === "connecting" && (
             <p className="text-xs text-muted">

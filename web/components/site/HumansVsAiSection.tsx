@@ -117,8 +117,8 @@ export function HumansVsAiSection() {
         <HumansVsAi />
         <p className="mt-2 text-sm text-muted">
           The scoreboard puts {AI_NAME}&apos;s record against the crowd&apos;s, where the crowd&apos;s pick is the side
-          with more points staked, across every settled market. {AI_NAME} only plays while its agent is running, so some
-          markets have no AI pick.
+          people staked more on (the AI and house bots don&apos;t count), across every settled market. {AI_NAME} only
+          plays while its agent is running, so some markets have no AI pick.
         </p>
       </div>
     </div>

@@ -44,3 +44,17 @@ test("safeNext only follows same-site paths", () => {
     assert.equal(safeNext(bad), "/markets", bad);
   }
 });
+
+test("unlockName only promises Face ID on Apple phones and tablets", async () => {
+  const { unlockName } = await import("../components/PhoneHandoff");
+  const ios = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15";
+  const android = "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/141.0 Mobile Safari/537.36";
+  const mac = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15";
+  const linux = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/141.0 Safari/537.36";
+  assert.equal(unlockName(ios), "Face ID or Touch ID");
+  assert.equal(unlockName(mac, "MacIntel", 5), "Face ID or Touch ID", "iPadOS reports a Mac user agent");
+  assert.equal(unlockName(mac, "MacIntel", 0), "Touch ID");
+  assert.equal(unlockName(android, "Linux armv8l"), "fingerprint");
+  assert.equal(unlockName("Mozilla/5.0 (Windows NT 10.0; Win64; x64)", "Win32"), "Windows Hello");
+  assert.equal(unlockName(linux, "Linux x86_64"), null);
+});

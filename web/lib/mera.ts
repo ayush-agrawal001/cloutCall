@@ -80,7 +80,7 @@ function sessionFromPrf(prfOutput: Uint8Array, path = WALLET_PATH): Secp256k1Sig
   }
 }
 
-/** First visit: create a passkey (one Face ID / Touch ID prompt) and open a signing session. */
+/** First visit: create a passkey (one biometric or screen-lock prompt) and open a signing session. */
 export async function createAccount(handle: string) {
   const res = await createPasskeyWithPrfOutput({
     rp: { id: rpId(), name: "CloutCall" },

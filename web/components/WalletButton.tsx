@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useState, type ReactNode } from "react";
 import { formatPoints, shortAddress } from "@/lib/markets";
-import { PhoneHandoff, usePlatformAuthenticator } from "./PhoneHandoff";
+import { PhoneHandoff, usePlatformAuthenticator, useUnlockName } from "./PhoneHandoff";
 import { PixelAvatar, PixelIcon } from "./Pixel";
 import { useWallet } from "./WalletProvider";
 
@@ -13,12 +13,13 @@ export function SignInPanel({ compact = false }: { compact?: boolean }) {
   const [handle, setHandle] = useState(w.handle);
   const busy = w.status === "connecting" || w.status === "funding";
   const hasBiometrics = usePlatformAuthenticator();
+  const unlock = useUnlockName();
 
   return (
     <div className={compact ? "space-y-3" : "card space-y-4 p-5"}>
       {!compact && (
         <div>
-          <p className="text-lg font-bold">Play with Face ID</p>
+          <p className="text-lg font-bold">Play with a passkey</p>
           <p className="text-sm text-muted">No wallet, no seed phrase, no gas. Your passkey is your account.</p>
         </div>
       )}
@@ -41,9 +42,9 @@ export function SignInPanel({ compact = false }: { compact?: boolean }) {
               ? w.status === "funding"
                 ? "Setting you up…"
                 : "Waiting for passkey…"
-              : hasBiometrics === false
-                ? "Create account with passkey"
-                : "Create account with Face ID"}
+              : hasBiometrics && unlock
+                ? `Create account with ${unlock}`
+                : "Create account with passkey"}
           </button>
         )}
         <button className="btn btn-ghost" disabled={busy} onClick={() => w.signIn()}>

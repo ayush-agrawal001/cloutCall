@@ -29,7 +29,7 @@ const FAQ = [
   },
   {
     q: "Do I need a crypto wallet or any crypto?",
-    a: "No. Your passkey (Face ID, fingerprint or your phone's screen lock) creates your account. New accounts get a small gas top-up automatically, so there's nothing to install or buy.",
+    a: "No. Your passkey (your fingerprint, face unlock or phone screen lock) creates your account. New accounts get a small gas top-up automatically, so there's nothing to install or buy.",
   },
   {
     q: "What is Monad, and why is it here?",
