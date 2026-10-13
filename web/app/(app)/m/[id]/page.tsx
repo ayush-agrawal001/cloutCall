@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { MarketView } from "@/components/MarketView";
-import { formatViews } from "@/lib/markets";
+import { MarketFromUrl } from "@/components/MarketView";
+import { formatViewsFine } from "@/lib/markets";
 import { getMarketSummary } from "@/lib/marketMeta";
 
 function parseId(raw: string) {
@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: PageProps<"/m/[id]">): Promis
   if (id === undefined) return { title: "Market not found" };
   try {
     const m = await getMarketSummary(id);
-    const title = `Will "${m.video.title}" hit ${formatViews(m.threshold)} views?`;
+    const title = `Will "${m.video.title}" reach ${formatViewsFine(m.threshold)} views?`;
     return {
       title,
       description: `Call it on CloutCall — YES or NO, confirmed on Monad in about a second.`,
@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: PageProps<"/m/[id]">): Promis
 async function Market({ params }: { params: PageProps<"/m/[id]">["params"] }) {
   const id = parseId((await params).id);
   if (id === undefined) return <p className="card p-6 text-no">Market not found.</p>;
-  return <MarketView id={id} />;
+  return <MarketFromUrl id={id} />;
 }
 
 export default function MarketPage({ params }: PageProps<"/m/[id]">) {

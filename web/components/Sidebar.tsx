@@ -37,7 +37,7 @@ function NavItem({ item, index, active }: { item: (typeof NAV)[number]; index: n
         <PixelIcon name={item.icon} />
       </span>
       <span className="y2k-label">{item.label}</span>
-      <span className={`y2k-label ml-auto font-mono text-[10px] ${active ? "" : "text-muted"}`}>
+      <span className={`y2k-label y2k-index ml-auto font-mono text-[10px] ${active ? "" : "text-muted"}`}>
         {String(index + 1).padStart(2, "0")}
       </span>
     </Link>
@@ -48,11 +48,13 @@ function NavItem({ item, index, active }: { item: (typeof NAV)[number]; index: n
 function NavLinks({ path }: { path: string }) {
   return (
     <>
-      <p className="y2k-label px-2.5 pb-2.5 font-mono text-[10px] tracking-[0.22em] text-muted">/ PLAY</p>
+      <p className="y2k-label y2k-section px-2.5 pb-2.5 font-mono text-[10px] tracking-[0.22em] text-muted">/ PLAY</p>
       {NAV.map((item, i) => (
         <NavItem key={item.href} item={item} index={i} active={item.match(path)} />
       ))}
-      <p className="y2k-label px-2.5 pb-2.5 pt-5 font-mono text-[10px] tracking-[0.22em] text-muted">/ SYSTEM</p>
+      <p className="y2k-label y2k-section px-2.5 pb-2.5 pt-5 font-mono text-[10px] tracking-[0.22em] text-muted">
+        / SYSTEM
+      </p>
       {SYSTEM.map((item, i) => (
         <NavItem key={item.href} item={item} index={NAV.length + i} active={item.match(path)} />
       ))}
@@ -78,7 +80,7 @@ export function Sidebar() {
         <ActiveNavLinks />
       </Suspense>
 
-      <div className="min-h-7 flex-1" />
+      <div className="y2k-hide-m min-h-7 flex-1" />
       <div className="y2k-label y2k-hide-m glitch border border-line bg-surface">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img

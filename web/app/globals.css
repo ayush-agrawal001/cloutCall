@@ -207,6 +207,26 @@ body::before {
   .y2k-hide-m {
     display: none !important;
   }
+  /* Phones: the sidebar becomes one scrollable row of tabs, so content starts on the first screen. */
+  .y2k-side {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    padding: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .y2k-side .y2k-section,
+  .y2k-side .y2k-index {
+    display: none;
+  }
+  .y2k-side .y2k-nav {
+    flex: none;
+    min-height: 40px;
+    gap: 8px;
+    padding-inline: 8px;
+    font-size: 14px;
+  }
 }
 
 /* Public pages (landing, sign-in): stacked panels floating on the rainbow, no sidebar. */

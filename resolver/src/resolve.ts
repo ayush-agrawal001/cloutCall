@@ -33,7 +33,8 @@ async function topUpSprints() {
     count: want - count,
     region: "US",
     maxAgeSec: 12 * 3600,
-    closeIn: 10 * 60,
+    // Calls stay open for most of the window; the contract only needs 2 minutes before settling.
+    closeIn: 25 * 60,
     resolveIn: 30 * 60,
   });
   for (const o of opened) console.log(`⚡ opened sprint #${o.id}: ${o.title} → ${o.threshold}`);

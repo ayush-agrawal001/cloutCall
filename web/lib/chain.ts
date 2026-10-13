@@ -38,7 +38,8 @@ export const ENVIO_URL = process.env.NEXT_PUBLIC_ENVIO_URL || "";
 
 export const publicClient = createPublicClient({
   chain,
-  transport: http(RPC_URL, { batch: true }),
+  // The public testnet RPC rate-limits per IP; back off and retry rather than surfacing the error.
+  transport: http(RPC_URL, { batch: true, retryCount: 6, retryDelay: 300 }),
   // Monad produces a block every ~300ms; poll at the same cadence.
   pollingInterval: 300,
 });

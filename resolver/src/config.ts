@@ -21,11 +21,13 @@ export function load() {
     registry?: Address;
   };
   const key = (process.env.RESOLVER_PRIVATE_KEY ?? process.env.DEPLOYER_PRIVATE_KEY) as Hex | undefined;
-  const publicClient = createPublicClient({ chain, transport: http(rpc) });
-  const wallet = key ? createWalletClient({ account: privateKeyToAccount(key), chain, transport: http(rpc) }) : undefined;
+  // The public testnet RPC rate-limits per IP (the keeper, agent and bots share it): back off and retry.
+  const transport = () => http(rpc, { retryCount: 6, retryDelay: 400 });
+  const publicClient = createPublicClient({ chain, transport: transport() });
+  const wallet = key ? createWalletClient({ account: privateKeyToAccount(key), chain, transport: transport() }) : undefined;
   const agentKey = process.env.AGENT_PRIVATE_KEY as Hex | undefined;
   const agentWallet = agentKey
-    ? createWalletClient({ account: privateKeyToAccount(agentKey), chain, transport: http(rpc) })
+    ? createWalletClient({ account: privateKeyToAccount(agentKey), chain, transport: transport() })
     : undefined;
   return {
     chainId,
