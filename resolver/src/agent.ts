@@ -31,7 +31,11 @@ const cfg = load();
 const apiKey = requireYoutubeKey(cfg.youtubeKey);
 const aiKeys = { openrouter: cfg.openrouterKey, gemini: cfg.geminiKey, kimi: cfg.kimiKey };
 if (funnelSteps(aiKeys).length === 0) throw new Error("Set OPENROUTER_API_KEY, GEMINI_API_KEY or KIMI_API_KEY");
-console.log(`CloutBot funnel: ${funnelSteps(aiKeys).map((s) => `${s.provider}:${s.model}`).join(" → ")}`);
+console.log(
+  `CloutBot funnel: ${funnelSteps(aiKeys)
+    .map((s) => `${s.provider}:${s.model}`)
+    .join(" → ")}`,
+);
 if (!cfg.journal) throw new Error("No journal address in deployments — run DeployExtras first");
 if (!cfg.agentWallet && !values["dry-run"]) throw new Error("Set AGENT_PRIVATE_KEY");
 const agent = cfg.agentWallet?.account?.address as Address | undefined;
@@ -68,6 +72,8 @@ async function ensurePoints(need: number) {
   return (await read("balanceOf")) as bigint;
 }
 
+/** Model answers not yet on-chain, so a failed send (e.g. an RPC rate limit) never asks the model twice. */
+const answers = new Map<bigint, Awaited<ReturnType<typeof askFunnel>>>();
 /** When recent picks were made, for the hourly cap. */
 const pickTimes: number[] = [];
 let lowGasLogged = false;
@@ -120,12 +126,15 @@ async function tick() {
       threshold: Number(m.threshold),
       hoursToResolve: Number(m.resolveTime - now) / 3600,
     };
-    let call;
-    try {
-      call = await askFunnel(ctx, aiKeys, { log: console.log });
-    } catch (e) {
-      console.error(`#${m.id} skipped: ${e instanceof Error ? e.message : e}`);
-      continue;
+    let call = answers.get(m.id);
+    if (!call) {
+      try {
+        call = await askFunnel(ctx, aiKeys, { log: console.log });
+        answers.set(m.id, call);
+      } catch (e) {
+        console.error(`#${m.id} skipped: ${e instanceof Error ? e.message : e}`);
+        continue;
+      }
     }
     const side = call.side === "YES" ? 1 : 2;
     let stake = stakeFor(call.confidence);
@@ -140,7 +149,12 @@ async function tick() {
       console.log("  skipped: agent is out of points");
       continue;
     }
-    await send("call", cfg.market, marketAbi, [m.id, side, BigInt(stake), "0x0000000000000000000000000000000000000000"]);
+    await send("call", cfg.market, marketAbi, [
+      m.id,
+      side,
+      BigInt(stake),
+      "0x0000000000000000000000000000000000000000",
+    ]);
     const hash = await send("record", journal, journalAbi, [
       m.id,
       side,
@@ -150,6 +164,7 @@ async function tick() {
       call.reasoning,
     ]);
     pickTimes.push(Date.now());
+    answers.delete(m.id);
     console.log(`  staked + journaled (${hash})`);
   }
 }
