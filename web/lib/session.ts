@@ -43,13 +43,15 @@ export class ScopedSession {
 
   constructor(
     private readonly mera: Secp256k1SigningSession,
-    opts: { budget?: number; ttlMs?: number } = {},
+    /** `expiresAt` and `spent` restore a session saved before a reload. */
+    opts: { budget?: number; ttlMs?: number; expiresAt?: number; spent?: number } = {},
   ) {
     const account = toViemAccount(mera);
     this.account = account;
     this.address = account.address;
     this.budget = opts.budget ?? SESSION_BUDGET;
-    this.expiresAt = Date.now() + (opts.ttlMs ?? SESSION_TTL_MS);
+    this.expiresAt = opts.expiresAt ?? Date.now() + (opts.ttlMs ?? SESSION_TTL_MS);
+    this.spent = opts.spent ?? 0;
     this.allowed = new Set(
       [MARKET_ADDRESS, POINTS_ADDRESS, REGISTRY_ADDRESS].filter((a): a is Address => !!a).map((a) => a.toLowerCase()),
     );

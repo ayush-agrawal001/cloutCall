@@ -8,12 +8,13 @@ import { PixelIcon, type PixelIconName } from "./Pixel";
 
 const NAV: { href: string; label: string; icon: PixelIconName; match: (p: string) => boolean }[] = [
   {
-    href: "/",
+    href: "/markets",
     label: "Markets",
     icon: "markets",
-    match: (p) => p === "/" || p.startsWith("/m/") || p.startsWith("/d/"),
+    match: (p) => p === "/markets" || p.startsWith("/m/") || p.startsWith("/d/"),
   },
   { href: "/leaderboard", label: "Leaderboard", icon: "podium", match: (p) => p.startsWith("/leaderboard") },
+  { href: "/cloutbot", label: "CloutBot", icon: "bot", match: (p) => p.startsWith("/cloutbot") },
   { href: "/creator", label: "Creators", icon: "creator", match: (p) => p.startsWith("/creator") },
 ];
 const SYSTEM = [
@@ -37,7 +38,7 @@ function NavItem({ item, index, active }: { item: (typeof NAV)[number]; index: n
         <PixelIcon name={item.icon} />
       </span>
       <span className="y2k-label">{item.label}</span>
-      <span className={`y2k-label ml-auto font-mono text-[10px] ${active ? "" : "text-muted"}`}>
+      <span className={`y2k-label y2k-index ml-auto font-mono text-[10px] ${active ? "" : "text-muted"}`}>
         {String(index + 1).padStart(2, "0")}
       </span>
     </Link>
@@ -48,11 +49,13 @@ function NavItem({ item, index, active }: { item: (typeof NAV)[number]; index: n
 function NavLinks({ path }: { path: string }) {
   return (
     <>
-      <p className="y2k-label px-2.5 pb-2.5 font-mono text-[10px] tracking-[0.22em] text-muted">/ PLAY</p>
+      <p className="y2k-label y2k-section px-2.5 pb-2.5 font-mono text-[10px] tracking-[0.22em] text-muted">/ PLAY</p>
       {NAV.map((item, i) => (
         <NavItem key={item.href} item={item} index={i} active={item.match(path)} />
       ))}
-      <p className="y2k-label px-2.5 pb-2.5 pt-5 font-mono text-[10px] tracking-[0.22em] text-muted">/ SYSTEM</p>
+      <p className="y2k-label y2k-section px-2.5 pb-2.5 pt-5 font-mono text-[10px] tracking-[0.22em] text-muted">
+        / SYSTEM
+      </p>
       {SYSTEM.map((item, i) => (
         <NavItem key={item.href} item={item} index={NAV.length + i} active={item.match(path)} />
       ))}
@@ -78,7 +81,7 @@ export function Sidebar() {
         <ActiveNavLinks />
       </Suspense>
 
-      <div className="min-h-7 flex-1" />
+      <div className="y2k-hide-m min-h-7 flex-1" />
       <div className="y2k-label y2k-hide-m glitch border border-line bg-surface">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img

@@ -24,12 +24,22 @@ export const POINTS_ADDRESS = (process.env.NEXT_PUBLIC_POINTS_ADDRESS ?? "0x") a
 export const JOURNAL_ADDRESS = (process.env.NEXT_PUBLIC_JOURNAL_ADDRESS || undefined) as Address | undefined;
 export const REGISTRY_ADDRESS = (process.env.NEXT_PUBLIC_REGISTRY_ADDRESS || undefined) as Address | undefined;
 export const AGENT_ADDRESS = (process.env.NEXT_PUBLIC_AGENT_ADDRESS || undefined) as Address | undefined;
+/** Disclosed house market-making accounts (resolver/src/liquidity.ts). Labelled in the app and never ranked. */
+export const HOUSE_BOTS = (process.env.NEXT_PUBLIC_HOUSE_BOTS ?? "")
+  .split(",")
+  .map((a) => a.trim().toLowerCase())
+  .filter(Boolean);
+/** 1-based bot number, or 0 when the address isn't a house bot. */
+export function houseBotNumber(address: string) {
+  return HOUSE_BOTS.indexOf(address.toLowerCase()) + 1;
+}
 export const START_BLOCK = BigInt(process.env.NEXT_PUBLIC_START_BLOCK ?? "0");
 export const ENVIO_URL = process.env.NEXT_PUBLIC_ENVIO_URL || "";
 
 export const publicClient = createPublicClient({
   chain,
-  transport: http(RPC_URL, { batch: true }),
+  // The public testnet RPC rate-limits per IP; back off and retry rather than surfacing the error.
+  transport: http(RPC_URL, { batch: true, retryCount: 6, retryDelay: 300 }),
   // Monad produces a block every ~300ms; poll at the same cadence.
   pollingInterval: 300,
 });

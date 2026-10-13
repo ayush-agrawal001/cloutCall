@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { askKimi, buildMessages, parseAiCall, signals, stakeFor, type MarketContext } from "../src/kimi";
+import { askKimi, buildMessages, parseAiCall, signals, stakeFor, stakeWithin, type MarketContext } from "../src/kimi";
 
 const ctx: MarketContext = {
   title: "Big upload",
@@ -55,4 +55,11 @@ test("askKimi calls the OpenAI-compatible endpoint with JSON mode", async () => 
   const call = await askKimi(ctx, "KEY", fake);
   assert.equal(call.side, "YES");
   assert.equal(call.confidence, 72);
+});
+
+test("stakeWithin caps a bet at a fifth of the balance and sits out when broke", () => {
+  assert.equal(stakeWithin(95, 10_000), 300);
+  assert.equal(stakeWithin(95, 500), 100);
+  assert.equal(stakeWithin(60, 40), 0, "8 points is below the 10-point minimum call");
+  assert.equal(stakeWithin(50, 0), 0);
 });

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { Address } from "viem";
-import { AGENT_ADDRESS, explorerTx } from "@/lib/chain";
+import { AGENT_ADDRESS, explorerTx, houseBotNumber } from "@/lib/chain";
 import type { MarketEvent } from "@/lib/live";
 import { formatPoints, formatViews, shortAddress, Side } from "@/lib/markets";
 
@@ -10,6 +10,8 @@ function who(a: unknown, me?: Address) {
   const addr = String(a);
   if (me && addr.toLowerCase() === me.toLowerCase()) return "You";
   if (AGENT_ADDRESS && addr.toLowerCase() === AGENT_ADDRESS.toLowerCase()) return "CloutBot";
+  const bot = houseBotNumber(addr);
+  if (bot) return `Liquidity bot ${bot}`;
   return shortAddress(addr);
 }
 

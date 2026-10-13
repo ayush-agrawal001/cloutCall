@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { usePathname } from "next/navigation";
+import { Suspense, useState, type ReactNode } from "react";
 import { formatPoints, shortAddress } from "@/lib/markets";
-import { PhoneHandoff, usePlatformAuthenticator } from "./PhoneHandoff";
+import { PhoneHandoff, usePlatformAuthenticator, useUnlockName } from "./PhoneHandoff";
 import { PixelAvatar, PixelIcon } from "./Pixel";
 import { useWallet } from "./WalletProvider";
 
@@ -12,12 +13,13 @@ export function SignInPanel({ compact = false }: { compact?: boolean }) {
   const [handle, setHandle] = useState(w.handle);
   const busy = w.status === "connecting" || w.status === "funding";
   const hasBiometrics = usePlatformAuthenticator();
+  const unlock = useUnlockName();
 
   return (
     <div className={compact ? "space-y-3" : "card space-y-4 p-5"}>
       {!compact && (
         <div>
-          <p className="text-lg font-bold">Play with Face ID</p>
+          <p className="text-lg font-bold">Play with a passkey</p>
           <p className="text-sm text-muted">No wallet, no seed phrase, no gas. Your passkey is your account.</p>
         </div>
       )}
@@ -40,9 +42,9 @@ export function SignInPanel({ compact = false }: { compact?: boolean }) {
               ? w.status === "funding"
                 ? "Setting you up…"
                 : "Waiting for passkey…"
-              : hasBiometrics === false
-                ? "Create account with passkey"
-                : "Create account with Face ID"}
+              : hasBiometrics && unlock
+                ? `Create account with ${unlock}`
+                : "Create account with passkey"}
           </button>
         )}
         <button className="btn btn-ghost" disabled={busy} onClick={() => w.signIn()}>
@@ -62,7 +64,50 @@ export function SignInPanel({ compact = false }: { compact?: boolean }) {
       {(hasBiometrics === false || w.error) && w.status !== "ready" && (
         <PhoneHandoff reason={w.error ? "failed" : "no-biometrics"} />
       )}
+      {!w.hasPasskey && !busy && (
+        <p className="text-sm text-muted">
+          New here?{" "}
+          <SignInLink intro className="font-semibold text-text underline">
+            Take the 1-minute intro
+          </SignInLink>{" "}
+          — what CloutCall is, what you can win and how Monad fits in.
+        </p>
+      )}
     </div>
+  );
+}
+
+/** The full sign-in page, returning to `path` afterwards. */
+function signInHref(path: string | null, intro = false) {
+  const q = new URLSearchParams();
+  if (intro) q.set("new", "1");
+  if (path && path !== "/") q.set("next", path);
+  const s = q.toString();
+  return s ? `/signin?${s}` : "/signin";
+}
+
+type SignInLinkProps = { intro?: boolean; className?: string; children: ReactNode };
+
+function HereSignInLink({ intro, className, children }: SignInLinkProps) {
+  return (
+    <Link href={signInHref(usePathname(), intro)} className={className}>
+      {children}
+    </Link>
+  );
+}
+
+/** Link to /signin that comes back here afterwards. The route streams in so pages stay prerenderable. */
+function SignInLink(props: SignInLinkProps) {
+  return (
+    <Suspense
+      fallback={
+        <Link href={signInHref(null, props.intro)} className={props.className}>
+          {props.children}
+        </Link>
+      }
+    >
+      <HereSignInLink {...props} />
+    </Suspense>
   );
 }
 
@@ -100,6 +145,10 @@ export function WalletButton() {
         </span>
       </Link>
     );
+  }
+  // First visit on this device: the sign-in page walks new players through the game before the passkey prompt.
+  if (!w.hasPasskey && w.status === "signed-out") {
+    return <SignInLink className="btn btn-accent h-11 px-4 py-0 text-sm uppercase no-underline">Sign in</SignInLink>;
   }
   return (
     <div className="relative">

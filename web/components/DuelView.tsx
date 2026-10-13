@@ -37,7 +37,9 @@ export function DuelView({
                 ? `${who} sealed a call on this. Bet against them blind.`
                 : `${who} called ${side === Side.Yes ? "YES" : side === Side.No ? "NO" : "it"}. Take the other side?`}
         </p>
-        <p className="text-sm text-muted">One tap with Face ID. No wallet, no gas, confirmed in about a second.</p>
+        <p className="text-sm text-muted">
+          One tap with your fingerprint or face. No wallet, no gas, confirmed in about a second.
+        </p>
       </div>
     </div>
   );

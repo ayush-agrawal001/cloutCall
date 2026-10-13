@@ -1,225 +1,305 @@
 /* eslint-disable @next/next/no-img-element -- static pixel art; next/image would smooth it */
 import Link from "next/link";
-import { HumansVsAi } from "@/components/HumansVsAi";
 import { LiveFeed } from "@/components/LiveFeed";
-import { MarketFeed } from "@/components/MarketFeed";
 import { PixelIcon } from "@/components/Pixel";
+import {
+  DemoMarket,
+  FactList,
+  MODES,
+  monadFacts,
+  NETWORK_NOTE,
+  PayoutExample,
+  PlayMoneyNote,
+  REWARDS,
+  STEPS,
+} from "@/components/site/Explain";
+import { HumansVsAiSection } from "@/components/site/HumansVsAiSection";
+import { SiteNav } from "@/components/site/SiteNav";
+import { AI_ENABLED, AI_NAME } from "@/lib/aiConfig";
+import { STARTER_POINTS } from "@/lib/intro";
 
-const FEATURES = [
+const SECTIONS = ["how", "win", ...(AI_ENABLED ? ["ai"] : []), "monad", "modes", "faq"];
+/** Section numbers follow the order above, so they stay in sequence when the AI section is off. */
+const num = (id: string) => String(SECTIONS.indexOf(id) + 1).padStart(2, "0");
+
+const FAQ = [
   {
-    href: "#markets",
-    title: "Hype Sprints",
-    body: "30-minute markets on fresh uploads, with a live views-per-minute pace panel.",
-    img: "/y2k/card-audio.webp",
-    alt: "Rainbow scanlines with horizontal chromatic distortion",
-    tag: "LIVE",
-    eq: true,
+    q: "Can I earn real money?",
+    a: "No. CloutCall is a free game played with CLOUT points. Points have no cash value and can't be bought, sold, transferred or withdrawn. What you earn is points, a leaderboard rank and the proof that you called the hype first.",
   },
   {
-    href: "/leaderboard",
-    title: "Beat the AI",
-    body: "When CloutBot is running, it stakes on open markets and posts its reasoning on-chain first. Take the other side.",
-    img: "/y2k/card-gallery.png",
-    alt: "Green and purple glitch graphic with torn scanlines",
-    tag: "KIMI",
+    q: "Do I need a crypto wallet or any crypto?",
+    a: "No. Your passkey (your fingerprint, face unlock or phone screen lock) creates your account. New accounts get a small gas top-up automatically, so there's nothing to install or buy.",
   },
   {
-    href: "/creator",
-    title: "Creator mode",
-    body: "Creators who link their channel (Google sign-in, read-only) can host markets on their own uploads.",
-    img: "/y2k/card-pattern.png",
-    alt: "Psychedelic magenta pixel interference pattern",
-    tag: "CREATORS",
+    q: "What is Monad, and why is it here?",
+    a: "Monad is a fast blockchain that works like Ethereum. Every call, payout and result in CloutCall is a transaction on it: confirmed in about a second, public, and checkable by anyone on the block explorer.",
+  },
+  ...(AI_ENABLED
+    ? [
+        {
+          q: `Who is ${AI_NAME}, and is it fair?`,
+          a: `${AI_NAME} is an AI player. It decides from the video's public stats only — not from what other players called — then stakes its own points and locks its pick and reasoning on-chain before calls close. It can't change the pick afterwards, and it wins or loses by the same rules as you.`,
+        },
+      ]
+    : []),
+  {
+    q: "Who decides whether a video hit its target?",
+    a: "After the deadline, CloutCall's resolver reads the video's public view count and posts it on-chain. The contract then pays out by fixed rules. If a market can't be settled fairly — for example the count was read too late to tell — it's cancelled and every stake is refunded.",
+  },
+  {
+    q: "What if I lose my passkey?",
+    a: "Your account key is rebuilt from your passkey each time you sign in, and only kept, encrypted, while a session is open. Keep the passkey synced in your password manager (iCloud Keychain, Google Password Manager and so on); if every copy is lost, the account can't be recovered.",
+  },
+  {
+    q: "Is CloutCall connected to YouTube or the creators?",
+    a: "No. It only reads public view counts. Creators can optionally link their own channel to host markets, but no one owns any part of a creator here.",
   },
 ];
 
-const EQ = [
-  ["70%", "#39FF14", "-.1s"],
-  ["100%", "#39FF14", "-.5s"],
-  ["55%", "#39FF14", "-.3s"],
-  ["85%", "#00FFFF", "-.7s"],
-  ["40%", "#00FFFF", "-.2s"],
-  ["95%", "#00FFFF", "-.6s"],
-  ["60%", "#FF00E5", "-.4s"],
-  ["80%", "#FF00E5", "-.9s"],
-  ["45%", "#FF00E5", "-.15s"],
-  ["75%", "#FFE600", "-.55s"],
-  ["90%", "#FF7A00", "-.75s"],
-  ["65%", "#FF1F1F", "-.25s"],
-];
-
-const STEPS = [
-  {
-    img: "/y2k/news-orb.webp",
-    tag: "01 · ACCOUNT",
-    title: "Face ID is the wallet",
-    body: "No seed phrase, no gas. Your passkey opens a scoped session.",
-  },
-  {
-    img: "/y2k/news-terrain.webp",
-    tag: "02 · CALL",
-    title: "Confirmed in about a second",
-    body: "Calls go out with sync receipts and show the measured time. Markets settle after their deadline.",
-  },
-  {
-    img: "/y2k/news-sort.webp",
-    tag: "03 · DUEL",
-    title: "Send the other side",
-    body: "Every call makes a duel link with the opposite side preselected.",
-  },
-];
-
-function Kicker({ id, children, end }: { id?: string; children: React.ReactNode; end?: React.ReactNode }) {
+function Section({
+  id,
+  index,
+  label,
+  title,
+  lead,
+  children,
+}: {
+  id: string;
+  index: string;
+  label: string;
+  title: string;
+  lead?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="kicker mb-3.5">
-      <h2 id={id} className="m-0 text-[11px] font-medium">
-        {children}
+    <section id={id} aria-labelledby={`${id}-h`} className="y2k-panel px-4 py-8 sm:px-8 sm:py-10">
+      <div className="kicker mb-4">
+        <span>
+          {index} / {label}
+        </span>
+      </div>
+      <h2
+        id={`${id}-h`}
+        className="max-w-[22ch] text-[clamp(30px,4.2vw,52px)] font-bold uppercase leading-[0.92] tracking-[-0.05em]"
+      >
+        {title}
       </h2>
-      {end && <span className="kicker-end">{end}</span>}
-    </div>
+      {lead && <p className="mt-3 max-w-[60ch] text-[15px] leading-relaxed text-muted">{lead}</p>}
+      <div className="mt-7">{children}</div>
+    </section>
   );
 }
 
-export default function Home() {
+export default function Landing() {
   return (
-    <div className="grid gap-x-6 gap-y-8 xl:grid-cols-[minmax(0,1fr)_300px]">
-      <section aria-labelledby="modes-h" className="min-w-0 xl:col-start-1">
-        <Kicker id="modes-h" end="3 MODES">
-          01 / GAME MODES
-        </Kicker>
-        <div className="grid gap-4 md:grid-cols-3">
-          {FEATURES.map((f) => (
-            <Link key={f.title} href={f.href} className="card lift flex min-w-0 flex-col text-text no-underline">
-              <div className="glitch h-[150px] border-b border-line bg-black">
-                <img src={f.img} alt={f.alt} className="pixelated block h-full w-full object-cover" />
-                <span className="absolute left-2 top-2 flex items-center gap-1.5 bg-ink px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-[0.08em] text-[#f5f5f5]">
-                  {f.eq && <span className="blink block h-[7px] w-[7px] bg-[#ff1f1f]" />}
-                  {f.tag}
-                </span>
-                {f.eq && (
-                  <div aria-hidden className="absolute inset-x-2.5 bottom-2.5 flex h-11 items-end gap-[3px]">
-                    {EQ.map(([h, c, d], i) => (
-                      <span key={i} className="eq flex-1" style={{ height: h, background: c, animationDelay: d }} />
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="flex flex-1 items-end gap-3 p-3 pl-3.5">
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-[19px] font-bold leading-tight tracking-[-0.025em]">{f.title}</h3>
-                  <p className="mt-1 font-mono text-[11px] leading-snug text-muted">{f.body}</p>
-                </div>
-                <span className="grid h-11 w-11 flex-none place-items-center border border-ink bg-lime text-ink">
-                  <PixelIcon name="arrowUp" />
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
+    <div className="site-stage">
+      <SiteNav />
 
-      <section aria-labelledby="manifesto-h" className="min-w-0 xl:col-start-1">
-        <Kicker end="MONAD · TRACK 03">02 / MANIFESTO</Kicker>
-        <div className="grid gap-5 sm:grid-cols-[30px_minmax(0,1fr)]">
-          <div
-            aria-hidden
-            className="hidden rotate-180 justify-between gap-6 overflow-hidden whitespace-nowrap border-l border-line pl-2.5 font-mono text-[10px] tracking-[0.34em] text-muted [writing-mode:vertical-rl] sm:flex"
-          >
-            <span>CLOUTCALL ■ HYPE MARKETS ON MONAD</span>
-            <span>VIEWS — CALLS — DUELS ■ 300MS BLOCKS</span>
-          </div>
+      <section aria-labelledby="hero-h" className="y2k-panel overflow-hidden">
+        <div className="grid gap-8 px-4 py-9 sm:px-8 sm:py-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-center">
           <div className="min-w-0">
+            <p className="flex flex-wrap items-center gap-2 font-mono text-[11px] tracking-[0.16em] text-muted">
+              <span className="border border-ink bg-lime px-1.5 py-0.5 font-semibold text-ink">FREE TO PLAY</span>A
+              YOUTUBE PREDICTION GAME ON MONAD
+            </p>
             <h1
-              id="manifesto-h"
-              className="chroma text-[clamp(44px,5.8vw,86px)] font-bold uppercase leading-[0.86] tracking-[-0.065em]"
+              id="hero-h"
+              className="chroma mt-5 text-[clamp(46px,7vw,98px)] font-bold uppercase leading-[0.86] tracking-[-0.065em]"
             >
               <span className="block">
-                Don&apos;t buy
+                Predict
                 <span className="glitch ml-[0.12em] inline-block h-[0.68em] w-[1.5em] border-2 border-[currentColor] align-[0]">
                   <img src="/y2k/art-mosaic.png" alt="" className="pixelated block h-full w-full object-cover" />
                 </span>
               </span>
-              <span className="block pl-[0.5em] text-[var(--ink-2)]">the creator.</span>
+              <span className="block pl-[0.5em] text-[var(--ink-2)]">which videos</span>
               <span className="block">
                 <span className="glitch mr-[0.1em] inline-block h-[0.68em] w-[0.7em] border-2 border-[currentColor] align-[0]">
                   <img src="/y2k/art-sphere.png" alt="" className="pixelated block h-full w-full object-cover" />
                 </span>
-                Call
-                <sup className="ml-2 inline-block align-[0.62em] font-mono text-[11px] font-medium tracking-[0.1em] text-muted">
-                  (YES/NO)
-                </sup>
+                go viral
               </span>
-              <span className="block text-[var(--ink-2)]">the creator.</span>
+              <span className="block text-[var(--ink-2)]">on YouTube.</span>
             </h1>
-            <div className="mt-7 flex flex-wrap items-stretch gap-5">
-              <p className="max-w-[40ch] flex-[1_1_240px] text-[15px] leading-relaxed">
-                Will that new upload cross the view target? Tap Face ID, make your call, and see it confirmed on Monad
-                in about a second. The market settles after its deadline.{" "}
-                <span className="text-muted">Then dare a friend — or our AI — to take the other side.</span>
-              </p>
-              <div className="flex min-w-0 flex-[1_1_220px] flex-col gap-2.5">
-                <div className="glitch h-[86px] border border-line">
-                  <img src="/y2k/art-target.png" alt="" className="pixelated block h-full w-full object-cover" />
-                </div>
-                <a
-                  href="#markets"
-                  className="btn btn-accent h-12 justify-between py-0 pl-4 pr-2 text-sm uppercase tracking-[0.04em] no-underline"
-                >
-                  Make a call
-                  <span className="grid h-8 w-8 place-items-center bg-ink text-lime">
-                    <PixelIcon name="arrow" size={14} />
-                  </span>
-                </a>
-              </div>
+            <p className="mt-6 max-w-[46ch] text-[17px] leading-relaxed">
+              Will that new upload hit its view target before the clock runs out? Call <b>YES</b> or <b>NO</b> with free
+              points, see it confirmed on Monad in about a second, then go up against your friends — and an AI that
+              makes its own calls.
+            </p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link
+                href="/signin?new=1"
+                className="btn btn-accent h-13 justify-between gap-4 py-0 pl-5 pr-2 text-sm uppercase tracking-[0.04em] no-underline"
+              >
+                Start playing — it&apos;s free
+                <span className="grid h-9 w-9 place-items-center bg-ink text-lime">
+                  <PixelIcon name="arrow" size={14} />
+                </span>
+              </Link>
+              <Link href="/markets" className="btn btn-ghost h-13 py-0 text-sm uppercase no-underline">
+                See live markets
+              </Link>
             </div>
-            <div className="mt-7">
-              <HumansVsAi />
-            </div>
+            <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 font-mono text-[11px] tracking-[0.08em] text-muted">
+              {[
+                "NO WALLET APP",
+                "NO SEED PHRASE",
+                `${STARTER_POINTS.toLocaleString("en")} FREE POINTS`,
+                "NO REAL MONEY",
+              ].map((t) => (
+                <li key={t} className="flex items-center gap-1.5">
+                  <span aria-hidden className="block h-1.5 w-1.5 bg-lime outline outline-1 outline-ink" />
+                  {t}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="mx-auto w-full max-w-[400px] lg:rotate-[1.5deg]">
+            <DemoMarket />
           </div>
         </div>
       </section>
 
-      <aside
-        aria-labelledby="feed-h"
-        className="min-w-0 xl:col-start-2 xl:row-span-2 xl:row-start-1 xl:border-l xl:border-line xl:pl-6"
+      <Section
+        id="how"
+        index={num("how")}
+        label="HOW IT WORKS"
+        title="Three taps, one call"
+        lead="Every market asks one question about a real YouTube video: will it reach the view target by the deadline?"
       >
-        <Kicker
-          id="feed-h"
-          end={<span className="blink inline-block h-[13px] w-2 border border-ink bg-lime align-middle" />}
-        >
-          03 / FEED.LOG
-        </Kicker>
-        <LiveFeed />
-        <div className="kicker mb-3.5 mt-8">
-          <h2 className="m-0 text-[11px] font-medium">HOW IT WORKS</h2>
-        </div>
-        <ol className="space-y-4">
-          {STEPS.map((s) => (
-            <li key={s.tag} className="flex gap-3 border-b border-line pb-4 last:border-b-0">
-              <div className="glitch h-[84px] w-[84px] flex-none border border-line">
-                <img src={s.img} alt="" className="block h-full w-full object-cover" />
+        <ol className="grid gap-3 md:grid-cols-3">
+          {STEPS.map((s, i) => (
+            <li key={s.title} className="card flex flex-col p-4">
+              <div className="flex items-center justify-between">
+                <span className="grid h-10 w-10 place-items-center border border-ink bg-lime text-ink">
+                  <PixelIcon name={s.icon} size={16} />
+                </span>
+                <span className="font-pixel text-3xl text-[var(--ink-2)]">{String(i + 1).padStart(2, "0")}</span>
               </div>
-              <div className="min-w-0">
-                <p className="font-mono text-[10px] tracking-[0.06em] text-muted">{s.tag}</p>
-                <h3 className="mt-1 text-[15px] font-bold leading-tight tracking-[-0.015em]">{s.title}</h3>
-                <p className="mt-1 text-xs leading-snug text-muted">{s.body}</p>
-              </div>
+              <h3 className="mt-4 text-xl font-bold tracking-[-0.025em]">{s.title}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted">{s.body}</p>
             </li>
           ))}
         </ol>
-      </aside>
+      </Section>
 
-      <section id="markets" aria-labelledby="markets-h" className="min-w-0 border-t border-line pt-6 xl:col-span-2">
-        <div className="mb-5 flex flex-wrap items-end gap-x-5 gap-y-2">
-          <h2 id="markets-h" className="text-[40px] font-bold uppercase leading-[0.9] tracking-[-0.055em]">
-            Live markets
-          </h2>
-          <span className="pb-0.5 font-mono text-[11px] tracking-[0.16em] text-muted">
-            04 / OPEN FIRST, THEN SETTLING
-          </span>
+      <Section
+        id="win"
+        index={num("win")}
+        label="WHAT YOU WIN"
+        title="Win points, not payouts"
+        lead="CloutCall is a skill game for bragging rights. You play with free points and win them from people who called it wrong."
+      >
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
+          <div className="min-w-0 space-y-4">
+            <FactList facts={REWARDS} />
+            <PlayMoneyNote />
+          </div>
+          <PayoutExample />
         </div>
-        <MarketFeed />
+      </Section>
+
+      {AI_ENABLED && (
+        <Section
+          id="ai"
+          index={num("ai")}
+          label="HUMANS VS AI"
+          title="Can you out-predict an AI?"
+          lead={`${AI_NAME} is an AI player that makes its own calls on the same markets, with its own points on the line. Every market is a contest between the crowd and the machine.`}
+        >
+          <HumansVsAiSection />
+        </Section>
+      )}
+
+      <Section
+        id="monad"
+        index={num("monad")}
+        label="WHY MONAD"
+        title="Every call is on-chain"
+        lead="Monad is a fast, Ethereum-compatible blockchain. CloutCall keeps the whole game on it, so it feels like an app but plays by public rules."
+      >
+        <FactList facts={monadFacts()} cols={4} />
+        <div className="mt-6">
+          <div className="card min-w-0 p-4">
+            <div className="kicker mb-3">
+              <span>HAPPENING ON MONAD NOW</span>
+              <span className="kicker-end">
+                <span className="blink inline-block h-[11px] w-2 border border-ink bg-lime align-middle" />
+              </span>
+            </div>
+            <LiveFeed limit={5} />
+          </div>
+          {NETWORK_NOTE && <p className="mt-3 font-mono text-[11px] leading-relaxed text-muted">{NETWORK_NOTE}</p>}
+        </div>
+      </Section>
+
+      <Section id="modes" index={num("modes")} label="WAYS TO PLAY" title="More than yes or no">
+        <FactList facts={MODES} cols={3} />
+      </Section>
+
+      <Section id="faq" index={num("faq")} label="FAQ" title="Fair questions">
+        <div className="grid gap-2">
+          {FAQ.map((f) => (
+            <details key={f.q} className="card group">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-4 font-bold tracking-[-0.01em] [&::-webkit-details-marker]:hidden">
+                {f.q}
+                <span
+                  aria-hidden
+                  className="grid h-7 w-7 flex-none place-items-center border border-line font-pixel text-sm group-open:bg-lime group-open:text-ink"
+                >
+                  <span className="group-open:hidden">+</span>
+                  <span className="hidden group-open:inline">−</span>
+                </span>
+              </summary>
+              <p className="border-t border-line p-4 text-sm leading-relaxed text-muted">{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </Section>
+
+      <section aria-labelledby="cta-h" className="relative overflow-hidden border border-ink bg-ink text-[#f5f5f5]">
+        <img
+          src="/y2k/card-pattern.png"
+          alt=""
+          className="pixelated absolute inset-0 h-full w-full object-cover opacity-25"
+        />
+        <div className="relative flex flex-wrap items-end justify-between gap-6 px-4 py-10 sm:px-8">
+          <div>
+            <h2
+              id="cta-h"
+              className="text-[clamp(32px,5vw,64px)] font-bold uppercase leading-[0.9] tracking-[-0.055em]"
+            >
+              Make your first call
+            </h2>
+            <p className="mt-3 max-w-[44ch] text-[15px] text-[#d6d3da]">
+              One passkey, {STARTER_POINTS.toLocaleString("en")} free points, and a minute-long intro before you play.
+            </p>
+          </div>
+          <Link
+            href="/signin?new=1"
+            className="btn btn-accent h-13 justify-between gap-4 py-0 pl-5 pr-2 text-sm uppercase no-underline"
+          >
+            Create your account
+            <span className="grid h-9 w-9 place-items-center bg-ink text-lime">
+              <PixelIcon name="arrow" size={14} />
+            </span>
+          </Link>
+        </div>
       </section>
+
+      <footer className="y2k-panel flex flex-wrap items-center justify-between gap-3 px-4 py-4 font-mono text-[11px] leading-relaxed text-muted sm:px-8">
+        <p>
+          Play-money points only — non-transferable, no cash value. Not affiliated with YouTube or any creator. Built on
+          Monad.
+        </p>
+        <nav aria-label="Footer" className="flex gap-4">
+          <Link href="/markets">Markets</Link>
+          <Link href="/leaderboard">Leaderboard</Link>
+          <Link href="/creator">Creators</Link>
+          <a href="https://github.com/ayush-agrawal001/cloutCall">GitHub</a>
+        </nav>
+      </footer>
     </div>
   );
 }

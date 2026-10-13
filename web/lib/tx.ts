@@ -4,6 +4,7 @@ import {
   BaseError,
   encodeFunctionData,
   keccak256,
+  toFunctionSelector,
   type Abi,
   type Address,
   type Chain,
@@ -222,14 +223,93 @@ export class FastSender {
 }
 
 /** Human-readable revert reason from a viem error. */
+/** Node and wallet failures in plain words. Matched against the node's own detail text, not viem's generic summary. */
+const KNOWN_FAILURES: [RegExp, string][] = [
+  [
+    /insufficient (balance|funds)/i,
+    "Not enough MON to pay for gas. CloutCall tops accounts up automatically; wait a moment and try again.",
+  ],
+  [
+    /requests limited|rate.?limit|too many requests|\b429\b/i,
+    "The Monad network is busy right now. Try again in a few seconds.",
+  ],
+  [
+    /nonce too low|already known|replacement transaction/i,
+    "Your previous transaction was still going through. Try again in a moment.",
+  ],
+  [/underpriced|max fee per gas less than|fee cap/i, "Gas prices just moved. Try again."],
+  [/timed? ?out|timeout|took too long/i, "The network didn't answer in time. Check your connection and try again."],
+  [
+    /fetch failed|failed to fetch|network ?error|ECONNREFUSED|ENOTFOUND/i,
+    "Couldn't reach the Monad network. Check your connection and try again.",
+  ],
+  [/user rejected|user denied|NotAllowedError|cancel/i, "Cancelled."],
+];
+
+/** Contract errors (custom errors in CloutMarket / CloutPoints) a player can hit, in plain words. */
+const CONTRACT_ERRORS: Record<string, string> = {
+  InsufficientPoints: "You don't have enough points for that stake. Lower it, or collect your winnings first.",
+  MarketClosed: "Calls on this market have closed.",
+  MarketNotOpen: "This market isn't taking calls.",
+  InvalidAmount: "Stakes must be between 10 and 10,000 points.",
+  AlreadyCommitted: "You already made a sealed call on this market.",
+  AlreadyClaimed: "You've already collected from this market.",
+  NothingToClaim: "There's nothing to collect from this market.",
+  NotSettled: "This market hasn't settled yet.",
+  TooEarly: "Too early: this market can't settle before its deadline.",
+  AlreadyRevealed: "You've already revealed this sealed call.",
+  BadReveal: "That reveal doesn't match your sealed call.",
+  NoCommitment: "There's no sealed call to reveal on this market.",
+  NonTransferable: "Points can't be sent to other players.",
+  RefillUnavailable: "No refill yet: refills are once a day, when you have under 50 points.",
+};
+
+/**
+ * Errors raised by CloutPoints inside a CloutMarket call aren't in the market ABI, so viem can't name them;
+ * match their 4-byte selectors directly.
+ */
+const NESTED_ERRORS = new Map(
+  ["InsufficientPoints", "RefillUnavailable", "NonTransferable", "NotMarket"].map((n) => [
+    toFunctionSelector(`${n}()`),
+    n,
+  ]),
+);
+
+function revertSelector(e: unknown): string | undefined {
+  let cur: unknown = e;
+  for (let i = 0; cur && i < 8; i++) {
+    const data = (cur as { data?: unknown }).data;
+    const hex = typeof data === "string" ? data : (data as { data?: unknown } | undefined)?.data;
+    if (typeof hex === "string" && /^0x[0-9a-f]{8}/i.test(hex)) return hex.slice(0, 10).toLowerCase();
+    cur = (cur as { cause?: unknown }).cause;
+  }
+}
+
 export function describeTxError(e: unknown): string {
   if (e instanceof TxStatusUnknownError || e instanceof TxRevertedError) return e.message;
+  const nested = NESTED_ERRORS.get((revertSelector(e) ?? "0x") as Hex);
+  if (nested) return CONTRACT_ERRORS[nested] ?? nested;
   if (e instanceof BaseError) {
     const reason = e.walk((err) => (err as { data?: { errorName?: string } }).data?.errorName !== undefined) as {
       data?: { errorName?: string };
     } | null;
-    if (reason?.data?.errorName) return reason.data.errorName.replace(/([a-z])([A-Z])/g, "$1 $2");
-    return e.shortMessage;
+    const name = reason?.data?.errorName;
+    if (name) return CONTRACT_ERRORS[name] ?? name.replace(/([a-z])([A-Z])/g, "$1 $2");
+  }
+  // viem's summary for node errors is generic ("Missing or invalid parameters…"); the cause is in `details`.
+  const details: string[] = [];
+  let cur: unknown = e;
+  for (let i = 0; cur && i < 6; i++) {
+    const c = cur as { message?: string; details?: string; shortMessage?: string; cause?: unknown };
+    details.push(c.details ?? "", c.shortMessage ?? "", c.message ?? "");
+    cur = c.cause;
+  }
+  const text = details.join(" ");
+  for (const [pattern, message] of KNOWN_FAILURES) if (pattern.test(text)) return message;
+  if (e instanceof BaseError) {
+    const detail = e.details && !/^(An unknown error|Missing or invalid)/i.test(e.details) ? e.details : "";
+    const summary = e.shortMessage.split("\n")[0].replace(/\.$/, "");
+    return detail ? `${summary}: ${detail}` : summary;
   }
   return e instanceof Error ? e.message : String(e);
 }

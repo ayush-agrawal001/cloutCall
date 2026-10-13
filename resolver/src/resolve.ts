@@ -4,9 +4,10 @@
  * this keeper is the simple path and a fallback.
  */
 import { parseArgs } from "node:util";
+import { formatEther, parseEther } from "viem";
 import { marketAbi } from "./abi";
 import { load, requireYoutubeKey } from "./config";
-import { decide } from "./logic";
+import { decide, staggeredWindow } from "./logic";
 import { readAllMarkets } from "./markets";
 import { getStats } from "./youtube";
 import { openSprintCount, seedSprints } from "./sprints";
@@ -17,6 +18,13 @@ const { values } = parseArgs({
     every: { type: "string", default: "30" },
     // Keep this many Hype Sprints open, seeding fresh uploads when below.
     sprints: { type: "string", default: "0" },
+    // Trending charts to pick sprint videos from, and how fresh an upload must be.
+    regions: { type: "string", default: "US" },
+    "max-age": { type: "string", default: "12" }, // hours
+    // Sprint lengths in minutes, cycled so sprints settle (and reopen) at different times.
+    durations: { type: "string", default: "20,30,40,50,60" },
+    // Stop opening sprints below this much MON so the keeper can always settle the ones already open.
+    reserve: { type: "string", default: "0.1" },
   },
 });
 
@@ -24,19 +32,33 @@ const cfg = load();
 if (!cfg.wallet) throw new Error("Set RESOLVER_PRIVATE_KEY");
 const apiKey = requireYoutubeKey(cfg.youtubeKey);
 
+let lowGasLogged = false;
+/** How many sprints this keeper has opened, so lengths keep cycling across passes. */
+let sprintsOpened = 0;
+const durations = values.durations!.split(",").map(Number).filter((n) => n > 0);
+
 async function topUpSprints() {
   const want = Number(values.sprints);
   if (!want) return;
+  const balance = await cfg.publicClient.getBalance({ address: cfg.wallet!.account!.address });
+  if (balance < parseEther(values.reserve!)) {
+    if (!lowGasLogged) console.error(`⛽ ${formatEther(balance)} MON left: not opening new sprints until topped up`);
+    lowGasLogged = true;
+    return;
+  }
+  lowGasLogged = false;
   const { count } = await openSprintCount(cfg);
   if (count >= want) return;
   const opened = await seedSprints(cfg, apiKey, {
     count: want - count,
-    region: "US",
-    maxAgeSec: 12 * 3600,
-    closeIn: 10 * 60,
+    region: values.regions!,
+    maxAgeSec: Number(values["max-age"]) * 3600,
+    closeIn: 25 * 60,
     resolveIn: 30 * 60,
+    window: (i) => staggeredWindow(sprintsOpened + i, durations),
   });
-  for (const o of opened) console.log(`⚡ opened sprint #${o.id}: ${o.title} → ${o.threshold}`);
+  sprintsOpened += opened.length;
+  for (const o of opened) console.log(`⚡ opened sprint #${o.id} (${o.minutes} min): ${o.title} → ${o.threshold}`);
 }
 
 async function tick() {

@@ -207,6 +207,55 @@ body::before {
   .y2k-hide-m {
     display: none !important;
   }
+  /* Phones: the sidebar becomes one scrollable row of tabs, so content starts on the first screen. */
+  .y2k-side {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    padding: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .y2k-side .y2k-section,
+  .y2k-side .y2k-index {
+    display: none;
+  }
+  .y2k-side .y2k-nav {
+    flex: none;
+    min-height: 40px;
+    gap: 8px;
+    padding-inline: 8px;
+    font-size: 14px;
+  }
+}
+
+/* Public pages (landing, sign-in): stacked panels floating on the rainbow, no sidebar. */
+.site-stage {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 1280px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: 10px;
+}
+.site-bar {
+  position: sticky;
+  top: 10px;
+  z-index: 30;
+  background: var(--head);
+  box-shadow: 4px 4px 0 #242424;
+}
+@media (max-width: 760px) {
+  .site-stage {
+    padding: 6px;
+    gap: 6px;
+  }
+  .site-bar {
+    top: 6px;
+  }
 }
 
 .y2k-nav {

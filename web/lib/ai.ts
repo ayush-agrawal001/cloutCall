@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { journalAbi } from "./abi";
+import { AI_ENABLED } from "./aiConfig";
 import { AGENT_ADDRESS, JOURNAL_ADDRESS, publicClient } from "./chain";
 import type { SideValue } from "./markets";
 
@@ -14,8 +15,7 @@ export type AiPick = {
   reasoning: string;
 };
 
-export const AI_ENABLED = !!(JOURNAL_ADDRESS && AGENT_ADDRESS);
-export const AI_NAME = "CloutBot";
+export { AI_ENABLED, AI_NAME } from "./aiConfig";
 
 export async function fetchAiPick(marketId: bigint): Promise<AiPick | null> {
   if (!AI_ENABLED) return null;

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { AI_NAME, type AiPick } from "@/lib/ai";
 import { formatViews, phaseOf, Side, type Market } from "@/lib/markets";
 
@@ -36,7 +37,10 @@ export function AiRivalCard({
       </p>
       <p className="text-sm">&ldquo;{pick.reasoning}&rdquo;</p>
       <p className="text-xs text-muted">
-        Predicts {formatViews(pick.predictedViews)} views · pick and stake recorded on-chain before calls closed
+        Predicts {formatViews(pick.predictedViews)} views · pick and stake recorded on-chain before calls closed ·{" "}
+        <Link href="/cloutbot" className="underline">
+          all {AI_NAME} calls
+        </Link>
       </p>
       {settled ? (
         <p className={`rounded-xl p-3 text-sm font-semibold ${aiRight ? "bg-no/10 text-no" : "bg-yes/10 text-yes"}`}>
