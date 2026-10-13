@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Silkscreen, Space_Grotesk } from "next/font/google";
+import { TourProvider } from "@/components/ArcadeTour";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { StatusBar } from "@/components/StatusBar";
@@ -34,22 +35,24 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full">
         <WalletProvider>
-          <div className="y2k-stage">
-            <div className="y2k-window">
-              <Header />
-              <div className="y2k-body">
-                <Sidebar />
-                <main className="y2k-panel y2k-content px-4 pb-8 pt-6 sm:px-7">
-                  {children}
-                  <p className="mt-12 border-t border-line pt-4 font-mono text-[11px] leading-relaxed text-muted">
-                    Play-money points only — CloutCall points are non-transferable and have no cash value. Not
-                    affiliated with YouTube or any creator. Built on Monad.
-                  </p>
-                </main>
+          <TourProvider>
+            <div className="y2k-stage">
+              <div className="y2k-window">
+                <Header />
+                <div className="y2k-body">
+                  <Sidebar />
+                  <main className="y2k-panel y2k-content px-4 pb-8 pt-6 sm:px-7">
+                    {children}
+                    <p className="mt-12 border-t border-line pt-4 font-mono text-[11px] leading-relaxed text-muted">
+                      Play-money points only — CloutCall points are non-transferable and have no cash value. Not
+                      affiliated with YouTube or any creator. Built on Monad.
+                    </p>
+                  </main>
+                </div>
+                <StatusBar />
               </div>
-              <StatusBar />
             </div>
-          </div>
+          </TourProvider>
         </WalletProvider>
       </body>
     </html>
