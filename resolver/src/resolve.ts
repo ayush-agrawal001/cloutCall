@@ -47,18 +47,24 @@ async function tick() {
   const stats = await getStats([...new Set(due.map((m) => m.videoId))], apiKey);
   const views = new Map([...stats].map(([id, s]) => [id, s.views]));
   for (const a of decide(due, views, now)) {
-    const hash = await cfg.wallet!.writeContract({
-      address: cfg.market,
-      abi: marketAbi,
-      functionName: a.kind === "resolve" ? "resolve" : "voidMarket",
-      args: a.kind === "resolve" ? [a.id, a.views] : [a.id],
-      account: cfg.wallet!.account!,
-      chain: cfg.chain,
-    } as never);
-    await cfg.publicClient.waitForTransactionReceipt({ hash });
-    console.log(
-      a.kind === "resolve" ? `resolved #${a.id} at ${a.views} views (${hash})` : `voided #${a.id}: ${a.reason} (${hash})`,
-    );
+    // One market failing (e.g. already settled by another keeper or CRE) must not block the rest.
+    try {
+      const hash = await cfg.wallet!.writeContract({
+        address: cfg.market,
+        abi: marketAbi,
+        functionName: a.kind === "resolve" ? "resolve" : "voidMarket",
+        args: a.kind === "resolve" ? [a.id, a.views] : [a.id],
+        account: cfg.wallet!.account!,
+        chain: cfg.chain,
+      } as never);
+      const r = await cfg.publicClient.waitForTransactionReceipt({ hash });
+      if (r.status !== "success") throw new Error(`reverted (${hash})`);
+      console.log(
+        a.kind === "resolve" ? `resolved #${a.id} at ${a.views} views (${hash})` : `voided #${a.id}: ${a.reason} (${hash})`,
+      );
+    } catch (e) {
+      console.error(`#${a.id} ${a.kind} failed:`, e instanceof Error ? e.message : e);
+    }
   }
 }
 

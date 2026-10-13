@@ -103,7 +103,7 @@ export function Leaderboard() {
             <tr>
               <th className="px-4 py-3">#</th>
               <th className="px-4 py-3">Caller</th>
-              <th className="px-4 py-3 text-right">Points</th>
+              <th className="px-4 py-3 text-right">Available points</th>
               {rich && <th className="hidden px-4 py-3 text-right sm:table-cell">Win rate</th>}
               {rich && <th className="hidden px-4 py-3 text-right sm:table-cell">Best streak</th>}
               {rich && <th className="hidden px-4 py-3 text-right md:table-cell">Duels won</th>}
@@ -143,7 +143,8 @@ export function Leaderboard() {
         </table>
       </div>
       <p className="text-xs text-muted">
-        Points read live from CloutCall contracts on Monad
+        Available points (not counting stakes in open markets or uncollected winnings) read live from CloutCall
+        contracts on Monad
         {rich ? " · win rate, streaks and duels indexed by Envio HyperIndex" : ""}.
       </p>
     </div>

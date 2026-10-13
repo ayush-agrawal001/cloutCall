@@ -37,7 +37,8 @@ export function parseVideoId(input: string): string | null {
 
 export function toStats(item: ApiVideo): VideoStats | null {
   const views = item.statistics?.viewCount;
-  if (!item.id || views === undefined) return null;
+  // BigInt("") is 0n: anything that isn't a plain non-negative integer is missing, not zero.
+  if (!item.id || views === undefined || !/^\d+$/.test(views)) return null;
   return {
     id: item.id,
     title: item.snippet?.title ?? item.id,

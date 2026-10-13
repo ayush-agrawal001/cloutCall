@@ -37,7 +37,7 @@ export function sideLabel(side?: SideValue) {
 
 export function duelText(opts: { title: string; target: string; side?: SideValue; sealed?: boolean; ms?: number }) {
   const call = opts.sealed ? "sealed my call 🔒" : `called ${sideLabel(opts.side)}`;
-  const speed = opts.ms ? ` Final in ${opts.ms}ms on @monad.` : "";
+  const speed = opts.ms ? ` Confirmed in ${opts.ms}ms on @monad.` : "";
   return `I ${call} on "${opts.title}" hitting ${opts.target} views.${speed} Think I'm wrong? Take the other side 👇`;
 }
 

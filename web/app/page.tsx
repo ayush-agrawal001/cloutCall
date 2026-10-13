@@ -18,7 +18,7 @@ const FEATURES = [
   {
     href: "/leaderboard",
     title: "Beat the AI",
-    body: "CloutBot stakes on every market and posts its reasoning on-chain. Take the other side.",
+    body: "When CloutBot is running, it stakes on open markets and posts its reasoning on-chain first. Take the other side.",
     img: "/y2k/card-gallery.png",
     alt: "Green and purple glitch graphic with torn scanlines",
     tag: "KIMI",
@@ -26,10 +26,10 @@ const FEATURES = [
   {
     href: "/creator",
     title: "Creator mode",
-    body: "Verified creators host markets on their own uploads, badged on every card.",
+    body: "Creators who link their channel (Google sign-in, read-only) can host markets on their own uploads.",
     img: "/y2k/card-pattern.png",
     alt: "Psychedelic magenta pixel interference pattern",
-    tag: "VERIFIED",
+    tag: "CREATORS",
   },
 ];
 
@@ -58,8 +58,8 @@ const STEPS = [
   {
     img: "/y2k/news-terrain.webp",
     tag: "02 · CALL",
-    title: "Lands in ~300ms",
-    body: "Calls go out with sync receipts; watch Proposed → Finalized.",
+    title: "Confirmed in about a second",
+    body: "Calls go out with sync receipts and show the measured time. Markets settle after their deadline.",
   },
   {
     img: "/y2k/news-sort.webp",
@@ -126,7 +126,7 @@ export default function Home() {
             className="hidden rotate-180 justify-between gap-6 overflow-hidden whitespace-nowrap border-l border-line pl-2.5 font-mono text-[10px] tracking-[0.34em] text-muted [writing-mode:vertical-rl] sm:flex"
           >
             <span>CLOUTCALL ■ HYPE MARKETS ON MONAD</span>
-            <span>VIEWS — CALLS — DUELS ■ 300MS</span>
+            <span>VIEWS — CALLS — DUELS ■ 300MS BLOCKS</span>
           </div>
           <div className="min-w-0">
             <h1
@@ -153,8 +153,9 @@ export default function Home() {
             </h1>
             <div className="mt-7 flex flex-wrap items-stretch gap-5">
               <p className="max-w-[40ch] flex-[1_1_240px] text-[15px] leading-relaxed">
-                Will that new upload cross the view target? Tap Face ID, make your call, and watch it settle in under a
-                second. <span className="text-muted">Then dare a friend — or our AI — to take the other side.</span>
+                Will that new upload cross the view target? Tap Face ID, make your call, and see it confirmed on Monad
+                in about a second. The market settles after its deadline.{" "}
+                <span className="text-muted">Then dare a friend — or our AI — to take the other side.</span>
               </p>
               <div className="flex min-w-0 flex-[1_1_220px] flex-col gap-2.5">
                 <div className="glitch h-[86px] border border-line">

@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
         </div>
         CloutCall
         <div style={{ marginLeft: "auto", fontSize: 24, color: "#9a98b3", display: "flex" }}>
-          {ms ? `final in ${ms}ms on Monad` : "settled on Monad"}
+          {ms ? `confirmed in ${ms}ms on Monad` : "called on Monad"}
         </div>
       </div>
       <div style={{ display: "flex", gap: 40, marginTop: 44, flex: 1 }}>

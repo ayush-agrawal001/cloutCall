@@ -4,7 +4,7 @@ import { explorerAddress, explorerTx, NETWORK_LABEL } from "@/lib/chain";
 import { formatPoints } from "@/lib/markets";
 import { KeysPanel } from "./KeysPanel";
 import { PersonasPanel } from "./PersonasPanel";
-import { SignInPanel } from "./WalletButton";
+import { SetupNotice, SignInPanel } from "./WalletButton";
 import { forgetThisDevice, useWallet } from "./WalletProvider";
 
 export function AccountPanel() {
@@ -28,6 +28,9 @@ export function AccountPanel() {
         <p className="mt-4 text-4xl font-black">
           {formatPoints(w.points)} <span className="text-base font-semibold text-muted">points</span>
         </p>
+        <div className="mt-4 empty:hidden">
+          <SetupNotice />
+        </div>
       </div>
 
       {s && (

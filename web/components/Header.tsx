@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { NETWORK_LABEL } from "@/lib/chain";
+import { HowToPlayButton } from "./ArcadeTour";
 import { PixelMark } from "./Pixel";
 import { ThemeToggle } from "./ThemeToggle";
 import { WalletButton } from "./WalletButton";
@@ -16,6 +17,7 @@ export function Header() {
         <span className="live-dot" /> {NETWORK_LABEL.toUpperCase()}
       </span>
       <div className="flex-1" />
+      <HowToPlayButton />
       <ThemeToggle />
       <div className="flex items-center border-l border-line pl-3 sm:pl-4">
         <WalletButton />
