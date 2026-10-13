@@ -23,7 +23,7 @@ import {
   signIn as meraSignIn,
   sessionFromKey,
 } from "@/lib/mera";
-import { runOnboarding, SetupError, type DripResult } from "@/lib/onboarding";
+import { dripFailureMessage, runOnboarding, SetupError, type DripResult } from "@/lib/onboarding";
 import {
   clearSession,
   forgetAccount,
@@ -100,6 +100,30 @@ async function waitBlocks(from: bigint, n: bigint) {
   }
 }
 
+/** Asks the sponsor for gas. Never throws: failures come back as a status the caller can explain. */
+async function requestDrip(address: Address): Promise<DripResult> {
+  try {
+    const r = await fetch("/api/drip", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ address }),
+    });
+    // A crashed route (e.g. an empty sponsor wallet) answers with a non-JSON 500.
+    const body = (await r.json().catch(() => ({ error: `HTTP ${r.status}` }))) as Omit<DripResult, "status">;
+    return { status: r.status, ...body };
+  } catch {
+    return { status: 0, error: "network error" };
+  }
+}
+
+/** Below this much MON the next call asks the sponsor for gas first (a call costs ~0.015 MON). */
+const LOW_GAS = 30_000_000_000_000_000n; // 0.03 MON
+
+function isOutOfGas(e: unknown) {
+  const text = e instanceof Error ? `${e.message} ${(e as { details?: string }).details ?? ""}` : String(e);
+  return /insufficient (balance|funds)/i.test(text);
+}
+
 /** The player-facing reason account setup stopped. */
 function setupMessage(e: unknown) {
   if (e instanceof SetupError) return e.message;
@@ -173,6 +197,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     notifyLocal();
   }, []);
 
+  /** Last known MON balance, kept fresh by `refresh` so a low balance can be topped up before the next call. */
+  const gasRef = useRef<bigint | undefined>(undefined);
+
   /** The signed-in address, also when only remembered (the signing session expired and wasn't reopened). */
   const addressRef = useRef<Address | undefined>(undefined);
 
@@ -180,13 +207,17 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const s = sessionRef.current;
     const who = s?.address ?? addressRef.current;
     if (!who) return;
-    const bal = await publicClient.readContract({
-      address: POINTS_ADDRESS,
-      abi: pointsAbi,
-      functionName: "balanceOf",
-      args: [who],
-    });
+    const [bal, mon] = await Promise.all([
+      publicClient.readContract({
+        address: POINTS_ADDRESS,
+        abi: pointsAbi,
+        functionName: "balanceOf",
+        args: [who],
+      }),
+      publicClient.getBalance({ address: who }).catch(() => undefined),
+    ]);
     setPoints(bal);
+    if (mon !== undefined) gasRef.current = mon;
     setSession(s?.info());
   }, []);
 
@@ -241,7 +272,25 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         if (addressRef.current) throw new SessionScopeError("expired", "Session expired — confirm with your passkey.");
         throw new Error("Sign in first");
       }
-      const res = await s.write(req, pointsAtRisk);
+      const topUp = async () => {
+        const d = await requestDrip(s.address);
+        if (d.funded && d.blockNumber) await waitBlocks(BigInt(d.blockNumber), 3n);
+        gasRef.current = await publicClient.getBalance({ address: s.address }).catch(() => undefined);
+        return d;
+      };
+      if (gasRef.current !== undefined && gasRef.current < LOW_GAS) await topUp();
+      let res;
+      try {
+        res = await s.write(req, pointsAtRisk);
+      } catch (e) {
+        if (!isOutOfGas(e)) throw e;
+        const d = await topUp();
+        if (!d.funded)
+          throw new Error(
+            `Not enough MON to pay for gas, and ${dripFailureMessage(d).replace(/^./, (c) => c.toLowerCase())}`,
+          );
+        res = await s.write(req, pointsAtRisk);
+      }
       setLastTx({ label, hash: res.receipt.transactionHash, ms: res.ms, block: res.receipt.blockNumber });
       setSession(s.info());
       if (pointsAtRisk) void updateSessionSpent(s.address, s.spent);
@@ -254,20 +303,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const onboard = useCallback(
     (s: ScopedSession) =>
       runOnboarding({
-        requestDrip: async (): Promise<DripResult> => {
-          try {
-            const r = await fetch("/api/drip", {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({ address: s.address }),
-            });
-            // A crashed route (e.g. an empty sponsor wallet) answers with a non-JSON 500.
-            const body = (await r.json().catch(() => ({ error: `HTTP ${r.status}` }))) as Omit<DripResult, "status">;
-            return { status: r.status, ...body };
-          } catch {
-            return { status: 0, error: "network error" };
-          }
-        },
+        requestDrip: () => requestDrip(s.address),
         getBalance: () => publicClient.getBalance({ address: s.address }),
         waitForDrip: (block) => waitBlocks(block, 3n),
         hasClaimedStarter: () =>

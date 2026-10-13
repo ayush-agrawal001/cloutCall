@@ -311,3 +311,15 @@ test("FastSender: a node without eth_sendRawTransactionSync still falls back to 
     s.stop();
   }
 });
+
+test("an empty gas tank is explained, not reported as invalid parameters", async () => {
+  const { describeTxError } = await import("../lib/tx");
+  const { InvalidInputRpcError } = await import("viem");
+  const raw = new InvalidInputRpcError(
+    Object.assign(new Error("insufficient balance"), { details: "insufficient balance" }),
+  );
+  assert.match(raw.shortMessage, /Missing or invalid parameters/);
+  assert.match(describeTxError(raw), /Not enough MON to pay for gas/);
+  assert.match(describeTxError(new Error("insufficient funds for gas * price + value")), /Not enough MON/);
+  assert.doesNotMatch(describeTxError(new Error("user rejected")), /MON/);
+});

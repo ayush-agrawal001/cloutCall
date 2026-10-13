@@ -224,6 +224,11 @@ export class FastSender {
 /** Human-readable revert reason from a viem error. */
 export function describeTxError(e: unknown): string {
   if (e instanceof TxStatusUnknownError || e instanceof TxRevertedError) return e.message;
+  // Nodes report an empty gas tank as "Missing or invalid parameters … insufficient balance".
+  const text = e instanceof Error ? `${e.message} ${(e as { details?: string }).details ?? ""}` : String(e);
+  if (/insufficient (balance|funds)/i.test(text)) {
+    return "Not enough MON to pay for gas. CloutCall tops accounts up automatically; wait a moment and try again.";
+  }
   if (e instanceof BaseError) {
     const reason = e.walk((err) => (err as { data?: { errorName?: string } }).data?.errorName !== undefined) as {
       data?: { errorName?: string };
