@@ -119,6 +119,15 @@ async function fund(amount: string, fromEnv: string) {
   if (!key) throw new Error(`--from ${fromEnv}: that variable isn't set in .env`);
   const funder = createWalletClient({ account: privateKeyToAccount(key), chain: cfg.chain, transport: http(rpc) });
   const each = parseEther(amount) / BigInt(bots.length);
+  // Check up front so a short wallet fails before any bot is paid, not halfway through.
+  const { maxFeePerGas } = await client.estimateFeesPerGas();
+  const needed = (each + 21_000n * maxFeePerGas) * BigInt(bots.length);
+  const have = await client.getBalance({ address: funder.account.address });
+  if (have < needed) {
+    throw new Error(
+      `${funder.account.address} has ${formatEther(have)} MON but funding ${bots.length} bots needs ~${formatEther(needed)} MON (incl. gas). Top it up or pass a smaller --fund.`,
+    );
+  }
   console.log(`Sending ${formatEther(each)} MON to each of ${bots.length} bots from ${funder.account.address}…`);
   for (const b of bots) {
     // Monad charges the gas limit, so set it exactly for a plain transfer.
