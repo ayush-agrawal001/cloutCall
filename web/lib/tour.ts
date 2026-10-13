@@ -63,7 +63,7 @@ export function tourSlides(f: TourFacts): TourSlide[] {
       id: "passkey",
       kicker: "YOUR PASSKEY",
       title: "Your passkey is the key.",
-      body: "Each sign-in derives your account key from your passkey. The key is never saved, so there's no seed phrase to write down or import.",
+      body: "Each sign-in derives your account key from your passkey, so there's no seed phrase to write down or import. Reloading keeps you signed in.",
       note: "Lose every copy of your passkey and the account can't be rebuilt. Keep it synced in a password manager.",
     },
     {

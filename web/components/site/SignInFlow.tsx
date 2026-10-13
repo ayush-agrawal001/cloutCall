@@ -348,7 +348,8 @@ function CreateStep({ headingRef, onCreate }: { headingRef: HeadingRef; onCreate
     },
     {
       label: "Open your Monad account",
-      detail: "Your account key is worked out from the passkey each time. It's never stored anywhere.",
+      detail:
+        "Your account key is worked out from the passkey. There's no seed phrase, and the key is only kept (encrypted) while your session is open.",
       state: w.status === "funding" ? "done" : "todo",
     },
     {

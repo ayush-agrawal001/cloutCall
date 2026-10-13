@@ -40,7 +40,8 @@ export function AccountPanel() {
             One passkey prompt opened a scoped session: calls to CloutCall contracts on {NETWORK_LABEL} sign instantly,
             up to <b className="text-text">{s.budget} points</b> at risk, until{" "}
             <b className="text-text">{new Date(s.expiresAt).toLocaleTimeString()}</b>. Anything beyond that asks for
-            your passkey again. The key lives only in memory and is wiped on sign-out.
+            your passkey again. Until then the key is kept encrypted on this device so a reload doesn&apos;t sign you
+            out; it&apos;s deleted when the session ends or you sign out.
           </p>
           <div className="h-2 overflow-hidden rounded-full bg-surface-2">
             <div className="h-full bg-accent" style={{ width: `${Math.min(100, (s.spent / s.budget) * 100)}%` }} />
@@ -71,10 +72,10 @@ export function AccountPanel() {
       )}
 
       <div className="card space-y-3 p-6 text-sm">
-        <p className="font-bold">Stateless by design</p>
+        <p className="font-bold">Your account lives on-chain</p>
         <p className="text-muted">
-          Nothing secret is stored on this device. Clear site data or open CloutCall on another device with the same
-          synced passkey and your account, points and history come straight back from the chain.
+          Nothing secret outlives your signing session on this device. Clear site data or open CloutCall on another
+          device with the same synced passkey and your account, points and history come straight back from the chain.
         </p>
         <div className="flex flex-wrap gap-2">
           <button className="btn btn-ghost" onClick={w.signOut}>

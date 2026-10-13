@@ -21,8 +21,9 @@ import { wordlist } from "@scure/bip39/wordlists/english.js";
  *   wallet        default mera salt → BIP-39 → m/44'/60'/0'/0/0   (Monad EOA, MetaMask-compatible)
  *   sealed-calls  sha256("cloutcall/sealed-calls/v1")           (HMAC key for commit-reveal salts)
  *
- * Nothing secret is ever persisted: only the credential id and transports live in localStorage, and
- * every key is re-derived from the passkey on demand, on any device that has the passkey synced.
+ * Keys are re-derived from the passkey on demand, on any device that has the passkey synced. The only
+ * secret ever kept is the wallet key of an open signing session, encrypted until that session expires so a
+ * reload doesn't sign the player out (lib/rememberedSession.ts).
  */
 
 const CREDENTIAL_KEY = "cloutcall.credential.v1";
@@ -70,13 +71,26 @@ export function deriveEvmPrivateKey(prfOutput: Uint8Array, path = WALLET_PATH): 
   return key;
 }
 
-function sessionFromPrf(prfOutput: Uint8Array, path = WALLET_PATH): Secp256k1SigningSession {
+/**
+ * A signing session for the key at `path`, plus a copy of that key for `saveSession` (which encrypts and
+ * then zeroes it).
+ */
+function sessionFromPrf(prfOutput: Uint8Array, path = WALLET_PATH) {
   const privateKey = deriveEvmPrivateKey(prfOutput, path);
+  try {
+    return { session: createSecp256k1SigningSession({ privateKey }), walletKey: privateKey.slice() };
+  } finally {
+    privateKey.fill(0);
+    prfOutput.fill(0);
+  }
+}
+
+/** Reopens a saved session's key (see lib/rememberedSession.ts). Zeroes `privateKey`. */
+export function sessionFromKey(privateKey: Uint8Array): Secp256k1SigningSession {
   try {
     return createSecp256k1SigningSession({ privateKey });
   } finally {
     privateKey.fill(0);
-    prfOutput.fill(0);
   }
 }
 
@@ -88,7 +102,7 @@ export async function createAccount(handle: string) {
     timeout: PASSKEY_TIMEOUT_MS,
   });
   saveCredential(res);
-  return { session: sessionFromPrf(new Uint8Array(res.prfOutput)), credentialId: res.credentialId };
+  return { ...sessionFromPrf(new Uint8Array(res.prfOutput)), credentialId: res.credentialId };
 }
 
 /** Derivation path for a named persona: an unrelated, unlinkable address from the same passkey. */
@@ -107,7 +121,7 @@ export async function signIn(persona?: string) {
   const path = persona ? await personaPath(persona) : WALLET_PATH;
   const res = await getPasskeyPrfOutput({ rpId: rpId(), credential, timeout: PASSKEY_TIMEOUT_MS });
   saveCredential({ credentialId: res.credentialId, transports: credential?.transports });
-  return { session: sessionFromPrf(new Uint8Array(res.prfOutput), path), credentialId: res.credentialId };
+  return { ...sessionFromPrf(new Uint8Array(res.prfOutput), path), credentialId: res.credentialId };
 }
 
 export async function sha256(bytes: Uint8Array) {

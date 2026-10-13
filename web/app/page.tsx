@@ -49,7 +49,7 @@ const FAQ = [
   },
   {
     q: "What if I lose my passkey?",
-    a: "Your account key is rebuilt from your passkey each time you sign in and never stored. Keep the passkey synced in your password manager (iCloud Keychain, Google Password Manager and so on); if every copy is lost, the account can't be recovered.",
+    a: "Your account key is rebuilt from your passkey each time you sign in, and only kept, encrypted, while a session is open. Keep the passkey synced in your password manager (iCloud Keychain, Google Password Manager and so on); if every copy is lost, the account can't be recovered.",
   },
   {
     q: "Is CloutCall connected to YouTube or the creators?",

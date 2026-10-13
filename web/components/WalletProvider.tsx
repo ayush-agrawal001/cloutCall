@@ -15,8 +15,24 @@ import {
 import type { Abi, Address } from "viem";
 import { pointsAbi } from "@/lib/abi";
 import { POINTS_ADDRESS, publicClient } from "@/lib/chain";
-import { createAccount, describeMeraError, forgetCredential, loadCredential, signIn as meraSignIn } from "@/lib/mera";
+import {
+  createAccount,
+  describeMeraError,
+  forgetCredential,
+  loadCredential,
+  signIn as meraSignIn,
+  sessionFromKey,
+} from "@/lib/mera";
 import { runOnboarding, SetupError, type DripResult } from "@/lib/onboarding";
+import {
+  clearSession,
+  forgetAccount,
+  loadAccount,
+  loadSession,
+  rememberAccount,
+  saveSession,
+  updateSessionSpent,
+} from "@/lib/rememberedSession";
 import { lockSealedKey } from "@/lib/sealed";
 import { ScopedSession, SessionScopeError, type SessionInfo } from "@/lib/session";
 import type { FastReceipt } from "@/lib/tx";
@@ -157,18 +173,62 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     notifyLocal();
   }, []);
 
+  /** The signed-in address, also when only remembered (the signing session expired and wasn't reopened). */
+  const addressRef = useRef<Address | undefined>(undefined);
+
   const refresh = useCallback(async () => {
     const s = sessionRef.current;
-    if (!s) return;
+    const who = s?.address ?? addressRef.current;
+    if (!who) return;
     const bal = await publicClient.readContract({
       address: POINTS_ADDRESS,
       abi: pointsAbi,
       functionName: "balanceOf",
-      args: [s.address],
+      args: [who],
     });
     setPoints(bal);
-    setSession(s.info());
+    setSession(s?.info());
   }, []);
+
+  /** Adopts a freshly opened session: keeps it across reloads and remembers who is signed in. */
+  const adopt = useCallback((s: ScopedSession, walletKey: Uint8Array | undefined) => {
+    sessionRef.current?.end();
+    sessionRef.current = s;
+    addressRef.current = s.address;
+    setAddress(s.address);
+    setSession(s.info());
+    rememberAccount(s.address, personaRef.current);
+    if (walletKey) void saveSession(walletKey, s.info());
+  }, []);
+
+  // Back from a reload: reopen the saved signing session, or at least show who is signed in.
+  useEffect(() => {
+    const account = loadAccount();
+    if (!account) return;
+    let live = true;
+    (async () => {
+      const saved = await loadSession();
+      if (!live || sessionRef.current) {
+        saved?.privateKey.fill(0);
+        return;
+      }
+      personaRef.current = account.persona;
+      setPersona(account.persona);
+      addressRef.current = account.address;
+      if (saved && saved.info.address.toLowerCase() === account.address.toLowerCase()) {
+        const { expiresAt, budget, spent } = saved.info;
+        sessionRef.current = new ScopedSession(sessionFromKey(saved.privateKey), { expiresAt, budget, spent });
+      } else {
+        saved?.privateKey.fill(0);
+      }
+      setAddress(account.address);
+      setStatus("ready");
+      await refresh().catch(() => {});
+    })();
+    return () => {
+      live = false;
+    };
+  }, [refresh]);
 
   const send = useCallback(
     async (
@@ -177,10 +237,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       pointsAtRisk = 0,
     ) => {
       const s = sessionRef.current;
-      if (!s) throw new Error("Sign in first");
+      if (!s) {
+        if (addressRef.current) throw new SessionScopeError("expired", "Session expired — confirm with your passkey.");
+        throw new Error("Sign in first");
+      }
       const res = await s.write(req, pointsAtRisk);
       setLastTx({ label, hash: res.receipt.transactionHash, ms: res.ms, block: res.receipt.blockNumber });
       setSession(s.info());
+      if (pointsAtRisk) void updateSessionSpent(s.address, s.spent);
       return res;
     },
     [],
@@ -226,18 +290,17 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   );
 
   const start = useCallback(
-    async (open: () => Promise<{ session: import("@category-labs/mera").Secp256k1SigningSession }>) => {
+    async (
+      open: () => Promise<{ session: import("@category-labs/mera").Secp256k1SigningSession; walletKey?: Uint8Array }>,
+    ) => {
       setError(undefined);
       setSetupError(undefined);
       setStatus("connecting");
       try {
-        const { session: mera } = await open();
-        sessionRef.current?.end();
+        const { session: mera, walletKey } = await open();
         const s = new ScopedSession(mera);
-        sessionRef.current = s;
-        setAddress(s.address);
+        adopt(s, walletKey);
         notifyLocal();
-        setSession(s.info());
         setStatus("funding");
         // The account exists from here on: a setup failure leaves the player signed in, with a visible
         // reason and a retry, instead of silently showing zero points.
@@ -249,7 +312,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         setStatus(sessionRef.current ? "ready" : "signed-out");
       }
     },
-    [onboard, refresh],
+    [onboard, refresh, adopt],
   );
 
   const create = useCallback(
@@ -308,6 +371,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     sessionRef.current?.end();
     lockSealedKey();
     sessionRef.current = null;
+    addressRef.current = undefined;
+    void clearSession();
+    forgetAccount();
     setAddress(undefined);
     setSession(undefined);
     setPoints(0n);
@@ -323,23 +389,43 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         return res;
       } catch (e) {
         if (!(e instanceof SessionScopeError)) throw e;
-        // Out of scope: one more passkey prompt opens a fresh, bounded session, then retry once.
-        const { session: mera } = await meraSignIn(personaRef.current || undefined);
-        sessionRef.current?.end();
-        sessionRef.current = new ScopedSession(mera);
+        // Out of scope or expired: one more passkey prompt opens a fresh, bounded session, then retry once.
+        const { session: mera, walletKey } = await meraSignIn(personaRef.current || undefined);
+        const s = new ScopedSession(mera);
+        // A different passkey than before means a different account; don't spend from it unasked.
+        const switched = !!addressRef.current && addressRef.current.toLowerCase() !== s.address.toLowerCase();
+        adopt(s, walletKey);
+        if (switched) {
+          await refresh();
+          throw new Error("That passkey opened a different account. Check the account, then try again.");
+        }
         const res = await send(label, req, pointsAtRisk);
         refresh();
         return res;
       }
     },
-    [send, refresh],
+    [send, refresh, adopt],
   );
 
-  const signLinkMessage = useCallback(async (message: string) => {
-    const s = sessionRef.current;
-    if (!s) throw new Error("Sign in first");
-    return s.signLinkMessage(message);
-  }, []);
+  const signLinkMessage = useCallback(
+    async (message: string) => {
+      let s = sessionRef.current;
+      if (!s?.active) {
+        if (!addressRef.current) throw new Error("Sign in first");
+        // The signing session expired (or ended with a reload): one passkey prompt reopens it.
+        const { session: mera, walletKey } = await meraSignIn(personaRef.current || undefined);
+        s = new ScopedSession(mera);
+        if (s.address.toLowerCase() !== addressRef.current.toLowerCase()) {
+          adopt(s, walletKey);
+          await refresh();
+          throw new Error("That passkey opened a different account. Check the account, then try again.");
+        }
+        adopt(s, walletKey);
+      }
+      return s.signLinkMessage(message);
+    },
+    [adopt, refresh],
+  );
 
   const prefetch = useCallback<WalletCtx["prefetch"]>((req) => sessionRef.current?.prefetch(req), []);
 
