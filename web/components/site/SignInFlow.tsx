@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { AI_ENABLED, AI_NAME } from "@/lib/aiConfig";
 import { explorerAddress, explorerTx, NETWORK_LABEL } from "@/lib/chain";
 import { safeNext, STARTER_POINTS } from "@/lib/intro";
 import { formatPoints, shortAddress } from "@/lib/markets";
@@ -260,6 +261,20 @@ function WhatStep({ headingRef }: { headingRef: HeadingRef }) {
               </span>
             </li>
           ))}
+          {AI_ENABLED && (
+            <li className="flex gap-3 border border-ink bg-magenta/10 p-3">
+              <span className="grid h-9 w-9 flex-none place-items-center border border-ink bg-magenta text-ink">
+                <PixelIcon name="bot" size={14} />
+              </span>
+              <span className="min-w-0">
+                <span className="block font-bold tracking-[-0.015em]">Humans vs AI</span>
+                <span className="mt-0.5 block text-sm leading-snug text-muted">
+                  {AI_NAME}, an AI player, makes its own call on markets and locks it on Monad before calls close. Back
+                  it, or take the other side and try to beat it.
+                </span>
+              </span>
+            </li>
+          )}
           <li className="border-t border-line pt-3 font-mono text-[11px] leading-relaxed text-muted">
             CloutCall only reads public view counts. It isn&apos;t affiliated with YouTube or any creator, and nobody
             owns a piece of a creator here.

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { AI_ENABLED } from "@/lib/aiConfig";
 import { NETWORK_LABEL } from "@/lib/chain";
 import { PixelIcon, PixelMark } from "../Pixel";
 import { ThemeToggle } from "../ThemeToggle";
@@ -9,6 +10,7 @@ import { useWallet } from "../WalletProvider";
 const LINKS = [
   { href: "/#how", label: "How it works" },
   { href: "/#win", label: "What you win" },
+  ...(AI_ENABLED ? [{ href: "/#ai", label: "Humans vs AI" }] : []),
   { href: "/#monad", label: "Why Monad" },
   { href: "/#faq", label: "FAQ" },
 ];

@@ -1,6 +1,5 @@
 /* eslint-disable @next/next/no-img-element -- static pixel art; next/image would smooth it */
 import Link from "next/link";
-import { HumansVsAi } from "@/components/HumansVsAi";
 import { LiveFeed } from "@/components/LiveFeed";
 import { PixelIcon } from "@/components/Pixel";
 import {
@@ -14,8 +13,14 @@ import {
   REWARDS,
   STEPS,
 } from "@/components/site/Explain";
+import { HumansVsAiSection } from "@/components/site/HumansVsAiSection";
 import { SiteNav } from "@/components/site/SiteNav";
+import { AI_ENABLED, AI_NAME } from "@/lib/aiConfig";
 import { STARTER_POINTS } from "@/lib/intro";
+
+const SECTIONS = ["how", "win", ...(AI_ENABLED ? ["ai"] : []), "monad", "modes", "faq"];
+/** Section numbers follow the order above, so they stay in sequence when the AI section is off. */
+const num = (id: string) => String(SECTIONS.indexOf(id) + 1).padStart(2, "0");
 
 const FAQ = [
   {
@@ -30,6 +35,14 @@ const FAQ = [
     q: "What is Monad, and why is it here?",
     a: "Monad is a fast blockchain that works like Ethereum. Every call, payout and result in CloutCall is a transaction on it: confirmed in about a second, public, and checkable by anyone on the block explorer.",
   },
+  ...(AI_ENABLED
+    ? [
+        {
+          q: `Who is ${AI_NAME}, and is it fair?`,
+          a: `${AI_NAME} is an AI player. It decides from the video's public stats only — not from what other players called — then stakes its own points and locks its pick and reasoning on-chain before calls close. It can't change the pick afterwards, and it wins or loses by the same rules as you.`,
+        },
+      ]
+    : []),
   {
     q: "Who decides whether a video hit its target?",
     a: "After the deadline, CloutCall's resolver reads the video's public view count and posts it on-chain. The contract then pays out by fixed rules. If a market can't be settled fairly — for example the count was read too late to tell — it's cancelled and every stake is refunded.",
@@ -111,7 +124,8 @@ export default function Landing() {
             </h1>
             <p className="mt-6 max-w-[46ch] text-[17px] leading-relaxed">
               Will that new upload hit its view target before the clock runs out? Call <b>YES</b> or <b>NO</b> with free
-              points, see it confirmed on Monad in about a second, and dare a friend to take the other side.
+              points, see it confirmed on Monad in about a second, then go up against your friends — and an AI that
+              makes its own calls.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link
@@ -149,7 +163,7 @@ export default function Landing() {
 
       <Section
         id="how"
-        index="01"
+        index={num("how")}
         label="HOW IT WORKS"
         title="Three taps, one call"
         lead="Every market asks one question about a real YouTube video: will it reach the view target by the deadline?"
@@ -172,7 +186,7 @@ export default function Landing() {
 
       <Section
         id="win"
-        index="02"
+        index={num("win")}
         label="WHAT YOU WIN"
         title="Win points, not payouts"
         lead="CloutCall is a skill game for bragging rights. You play with free points and win them from people who called it wrong."
@@ -186,15 +200,27 @@ export default function Landing() {
         </div>
       </Section>
 
+      {AI_ENABLED && (
+        <Section
+          id="ai"
+          index={num("ai")}
+          label="HUMANS VS AI"
+          title="Can you out-predict an AI?"
+          lead={`${AI_NAME} is an AI player that makes its own calls on the same markets, with its own points on the line. Every market is a contest between the crowd and the machine.`}
+        >
+          <HumansVsAiSection />
+        </Section>
+      )}
+
       <Section
         id="monad"
-        index="03"
+        index={num("monad")}
         label="WHY MONAD"
         title="Every call is on-chain"
         lead="Monad is a fast, Ethereum-compatible blockchain. CloutCall keeps the whole game on it, so it feels like an app but plays by public rules."
       >
         <FactList facts={monadFacts()} cols={4} />
-        <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="mt-6">
           <div className="card min-w-0 p-4">
             <div className="kicker mb-3">
               <span>HAPPENING ON MONAD NOW</span>
@@ -204,18 +230,15 @@ export default function Landing() {
             </div>
             <LiveFeed limit={5} />
           </div>
-          <div className="min-w-0 space-y-3">
-            <HumansVsAi />
-            {NETWORK_NOTE && <p className="font-mono text-[11px] leading-relaxed text-muted">{NETWORK_NOTE}</p>}
-          </div>
+          {NETWORK_NOTE && <p className="mt-3 font-mono text-[11px] leading-relaxed text-muted">{NETWORK_NOTE}</p>}
         </div>
       </Section>
 
-      <Section id="modes" index="04" label="WAYS TO PLAY" title="More than yes or no">
+      <Section id="modes" index={num("modes")} label="WAYS TO PLAY" title="More than yes or no">
         <FactList facts={MODES} cols={3} />
       </Section>
 
-      <Section id="faq" index="05" label="FAQ" title="Fair questions">
+      <Section id="faq" index={num("faq")} label="FAQ" title="Fair questions">
         <div className="grid gap-2">
           {FAQ.map((f) => (
             <details key={f.q} className="card group">
