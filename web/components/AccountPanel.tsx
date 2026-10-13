@@ -3,6 +3,7 @@
 import { explorerAddress, explorerTx, NETWORK_LABEL } from "@/lib/chain";
 import { formatPoints } from "@/lib/markets";
 import { KeysPanel } from "./KeysPanel";
+import { MyCalls } from "./MyCalls";
 import { PersonasPanel } from "./PersonasPanel";
 import { SetupNotice, SignInPanel } from "./WalletButton";
 import { forgetThisDevice, useWallet } from "./WalletProvider";
@@ -18,7 +19,7 @@ export function AccountPanel() {
   }
   const s = w.session;
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
+    <div className="mx-auto max-w-3xl space-y-4">
       <div className="card p-6">
         <p className="text-sm text-muted">Signed in as</p>
         <p className="text-2xl font-black">{w.handle || "caller"}</p>
@@ -32,6 +33,8 @@ export function AccountPanel() {
           <SetupNotice />
         </div>
       </div>
+
+      <MyCalls />
 
       {s && (
         <div className="card space-y-2 p-6 text-sm">

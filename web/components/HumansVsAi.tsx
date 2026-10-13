@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { marketAbi } from "@/lib/abi";
-import { AI_ENABLED, AI_NAME, fetchAiPick } from "@/lib/ai";
+import { AI_ENABLED, AI_NAME } from "@/lib/ai";
 import { AGENT_ADDRESS, HOUSE_BOTS, MARKET_ADDRESS, publicClient } from "@/lib/chain";
-import { fetchMarkets, Side, Status, type Market } from "@/lib/markets";
+import { Side, Status, type Market } from "@/lib/markets";
+import { fetchAiHistory } from "@/lib/portfolio";
 import { PixelIcon } from "./Pixel";
 
 type Score = { aiW: number; aiL: number; crowdW: number; crowdL: number; live: number };
@@ -43,18 +45,17 @@ export function HumansVsAi() {
     if (!AI_ENABLED) return;
     let live = true;
     const load = async () => {
-      const markets = await fetchMarkets(0, 100);
-      const picks = await Promise.all(markets.map((m) => fetchAiPick(m.id).catch(() => null)));
+      // One batched read for every pick and its market (see lib/portfolio), so the score never undercounts.
+      const rows = await fetchAiHistory();
       const s: Score = { aiW: 0, aiL: 0, crowdW: 0, crowdL: 0, live: 0 };
-      for (const [i, m] of markets.entries()) {
-        const pick = picks[i];
-        if (!pick) continue;
+      for (const r of rows) {
+        const m = r.market;
         if (m.status === Status.Open) {
           s.live++;
           continue;
         }
-        if (m.status !== Status.Resolved) continue;
-        if (pick.side === m.outcome) s.aiW++;
+        if (r.right === null) continue; // cancelled
+        if (r.right) s.aiW++;
         else s.aiL++;
         const people = await peoplePools(m);
         if (people.yes === people.no) continue;
@@ -105,7 +106,10 @@ export function HumansVsAi() {
       </div>
       <p className="border-t border-line p-4 text-sm text-muted">
         Can humans predict virality better than an AI? When it is running, {AI_NAME} stakes points on open markets and
-        posts its reasoning on-chain before calls close. {score.live > 0 && `${score.live} live duels open right now.`}
+        posts its reasoning on-chain before calls close. {score.live > 0 && `${score.live} live duels open right now.`}{" "}
+        <Link href="/cloutbot" className="font-semibold text-text underline">
+          See every {AI_NAME} call
+        </Link>
       </p>
     </div>
   );

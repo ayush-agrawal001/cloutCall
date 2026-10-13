@@ -4,10 +4,10 @@
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useAiPick } from "@/lib/ai";
+import { allMarkets } from "@/lib/portfolio";
 import {
   clockTime,
   countdown,
-  fetchMarkets,
   formatPoints,
   formatViewsFine,
   groupMarkets,
@@ -47,7 +47,7 @@ export function MarketBoard() {
   useEffect(() => {
     let live = true;
     const load = () =>
-      fetchMarkets(0, 60)
+      allMarkets()
         .then((m) => live && (setMarkets(m), setFailing(false)))
         .catch(() => live && setFailing(true));
     load();

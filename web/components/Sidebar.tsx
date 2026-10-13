@@ -14,6 +14,7 @@ const NAV: { href: string; label: string; icon: PixelIconName; match: (p: string
     match: (p) => p === "/markets" || p.startsWith("/m/") || p.startsWith("/d/"),
   },
   { href: "/leaderboard", label: "Leaderboard", icon: "podium", match: (p) => p.startsWith("/leaderboard") },
+  { href: "/cloutbot", label: "CloutBot", icon: "bot", match: (p) => p.startsWith("/cloutbot") },
   { href: "/creator", label: "Creators", icon: "creator", match: (p) => p.startsWith("/creator") },
 ];
 const SYSTEM = [
