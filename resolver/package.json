@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "agent": "tsx --env-file-if-exists=../.env src/agent.ts",
     "seed-sprints": "tsx --env-file-if-exists=../.env src/seed-sprints.ts",
-    "bots": "tsx --env-file-if-exists=../.env src/liquidity.ts"
+    "bots": "tsx --env-file-if-exists=../.env src/liquidity.ts",
+    "gas": "tsx --env-file-if-exists=../.env src/gas.ts"
   },
   "dependencies": {
     "viem": "^2.57.4"
